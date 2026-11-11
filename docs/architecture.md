@@ -1,9 +1,10 @@
 # Architecture
 
 ## Stack
-Expo with React Native, strict TypeScript, and Expo Router. npm is the only
+Expo SDK 58 (58.0.23) with React Native 0.88.1, React 19.3.0, strict TypeScript,
+and Expo Router. npm is the only
 package manager. The lockfile records the actual resolved dependency versions.
-The stable SDK is selected from Expo's official default template during setup.
+The foundation uses stable SDK 58, initialized from Expo's official default template.
 
 ## Folder structure
 - src/app/_layout.tsx: shared navigation, status bar, and safe-area provider.
