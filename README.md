@@ -22,7 +22,8 @@ and do not require Metro or a running laptop.
 
 Expo EAS Build will build the native app in the cloud. Account linking and Apple
 signing are intentionally deferred. In the next setup session, authenticate with
-your real Expo account, link the actual EAS project, choose your owned iOS bundle
+your real Expo account, link the existing EAS project
+`e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1` (do not create another project), choose your owned iOS bundle
 identifier, and configure Apple credentials. Do not invent identifiers.
 Then configure EAS build profiles and create an internal-distribution preview build
 (or TestFlight build). Physical-device internal distribution requires Apple signing
@@ -32,5 +33,6 @@ No authentication, backend, payments, or AI features are included.
 
 - [Product](docs/product.md)
 - [Architecture](docs/architecture.md)
-- [Tasks and verification](docs/tasks.md)
+- [Current status and next task](docs/status.md)
+- [Foundation history and backlog](docs/tasks.md)
 - [Shared agent instructions](AGENTS.md)

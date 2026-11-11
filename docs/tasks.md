@@ -1,5 +1,8 @@
 # Tasks
 
+Current handoff: [docs/status.md](status.md). This file retains foundation history
+and the longer backlog; historical verification below is not a fresh check.
+
 ## Completed
 - Confirmed the repository was empty; initialized main with a minimal README to
   establish the base needed for a pull request. No existing work was overwritten.
@@ -12,9 +15,10 @@
 - Documented product scope, architecture, and planned local SQLite storage.
 - Left Expo account linking, identifiers, credentials, and signing unconfigured.
 
-## Verification
-Validation runs on a GitHub-hosted Ubuntu runner using Node.js 24 and npm,
-because this coding session cannot resolve the npm registry.
+## Historical verification
+The earlier foundation session recorded the following results on a GitHub-hosted
+Ubuntu runner using Node.js 24 and npm, because that session could not resolve
+the npm registry. See status.md for current verification.
 - npm ci: passed; confirms the committed manifest and lockfile install together.
 - npm run typecheck: passed.
 - npm run lint: passed.
@@ -28,7 +32,8 @@ it is removed from the final foundation. The retained checks workflow uses
 read-only repository permissions and validates future pull requests.
 
 ## Next steps
-1. Link the real Expo account and EAS project; choose the real iOS bundle ID.
+1. Complete the validation handoff in docs/status.md, then link the existing Expo
+   project e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1; choose the real iOS bundle ID.
 2. Configure EAS cloud build profiles and Apple signing for a physical iPhone.
 3. Build and install an internal preview or TestFlight build; smoke-test on iPhone.
 4. Agree on manual entry fields, goal controls, and calendar-day behavior.

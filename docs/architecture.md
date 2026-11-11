@@ -2,7 +2,8 @@
 
 ## Stack
 Expo SDK 58 (58.0.23) with React Native 0.88.1, React 19.3.0, strict TypeScript,
-and Expo Router. npm is the only
+and Expo Router ~58.0.30. Node.js 24 LTS is selected by .nvmrc and CI;
+package.json requires Node >=24. TypeScript ~6.0.3 uses strict checking. npm is the only
 package manager. The lockfile records the actual resolved dependency versions.
 The foundation uses stable SDK 58, initialized from Expo's official default template.
 
@@ -10,9 +11,17 @@ The foundation uses stable SDK 58, initialized from Expo's official default temp
 - src/app/_layout.tsx: shared navigation, status bar, and safe-area provider.
 - src/app/index.tsx: the home route with the Moo title and tagline.
 - src/theme/index.ts: reusable color, spacing, and typography values.
-- docs/: product scope, architecture, task state, and verification.
+- docs/product.md: audience and product scope.
+- docs/status.md: current verified handoff, blockers, and next task.
+- docs/tasks.md: foundation history and longer backlog.
+- AGENTS.md / CLAUDE.md: shared session rules and Claude Code entry point.
+- package.json / package-lock.json: scripts and dependency resolution.
+- tsconfig.json / eslint.config.js: TypeScript and Expo ESLint configuration.
 - .github/workflows/checks.yml: cloud TypeScript, lint, and Expo Doctor checks.
-- app.json: app display/configuration; deliberately no account/signing identifiers.
+- app.json: Moo display name, moo-protein-tracker slug, moo URL scheme,
+  portrait/light UI, iPhone-only configuration, and Expo Router plugin. No owner,
+  extra.eas.projectId, or ios.bundleIdentifier is configured yet.
+- No eas.json, native ios/android directories, storage module, or test suite exists.
 
 Keep routes thin as features grow. Introduce src/components for shared UI,
 src/features for logging/goals/history logic, and src/storage for persistence
@@ -43,3 +52,25 @@ after account linking and Apple signing are configured in a later step.
 Preview/production binaries bundle JavaScript and do not need a laptop or Metro
 server to remain running. Interactive Metro development still needs an active
 development environment.
+
+### Existing Expo project and build setup
+The user-provided existing Expo project ID is
+`e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1`. Reuse it; never create another project.
+The ID is recorded here but is not yet linked in app.json, and account access has
+not been verified. A later setup task should authenticate in the cloud using
+secure environment credentials, verify access to that exact project, and link
+it explicitly (for example, `npx eas-cli init --id e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1`). Do not accept a prompt to
+create a project. Confirm the resulting configuration before proceeding.
+
+Then configure eas.json profiles, the owner's chosen iOS bundle identifier, and
+Apple signing. Internal physical-device previews require signing and registered
+devices; TestFlight requires App Store Connect setup. Use an installable preview
+with bundled JavaScript when testing without an active Metro session. A development
+client can still require Metro. EAS cloud jobs can continue after submission
+without a laptop staying on. Build submission is a separate, explicitly requested
+step; no build is authorized as part of this documentation handoff.
+
+The existing GitHub Actions workflow runs npm ci, typecheck, lint, doctor, and an
+iOS JavaScript export on pull requests and pushes to main. Merely pushing to the
+foundation branch does not establish a successful CI run. Consult docs/status.md
+for observed validation results and unresolved environment requirements.

@@ -18,6 +18,12 @@ themselves. Moo records behavior; it does not prescribe diets or supplement dose
 The foundation only displays the home screen. Logging, goals, history, and cow
 progress are planned features, not implemented features.
 
+## Development constraint
+Development and validation must work in cloud environments operated from a phone.
+Use Expo cloud builds for installable iPhone binaries; everyday use of an installed
+preview or production app must not require a laptop to stay on. See architecture.md
+for the distinction between installed builds and interactive Metro development.
+
 ## Boundaries
 Local, single-user experience first. No authentication, backend, payments, or AI.
 Cloud build infrastructure does not mean user intake data is stored in the cloud.
