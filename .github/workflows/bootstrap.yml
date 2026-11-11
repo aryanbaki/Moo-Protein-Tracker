@@ -29,7 +29,7 @@ jobs:
             dependencies[name] = template.dependencies[name];
           }
           const devDependencies = {};
-          for (const name of ['typescript', '@types/react', 'eslint', 'eslint-config-expo']) {
+          for (const name of ['typescript', '@types/react']) {
             const version = template.devDependencies?.[name] ?? template.dependencies?.[name];
             if (!version) throw new Error('Missing template dev dependency: ' + name);
             devDependencies[name] = version;
@@ -46,6 +46,7 @@ jobs:
           }, null, 2) + '\n');
           NODE
           npm install
+          npx expo install eslint eslint-config-expo --dev --npm
           npm install --save-dev expo-doctor
       - name: Validate a fresh dependency install
         run: npm ci
