@@ -50,7 +50,9 @@ jobs:
           npm install --save-dev expo-doctor
       - name: Validate a fresh dependency install
         run: npm ci
-      - name: Inspect dependency advisories
+      - name: Apply compatible dependency fixes
+        run: npm audit fix || test "$?" -eq 1
+      - name: Inspect remaining dependency advisories
         run: npm audit --json || true
       - run: npm run typecheck
       - run: npm run lint
