@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Moo",
+    "slug": "moo-protein-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "moo",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+name: Bootstrap Expo foundation
+on:
+  push:
+    branches: [codex/moo-foundation]
+permissions:
+  contents: write
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/moo-foundation
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Initialize from the official stable Expo template
+        run: |
+          if [ -f package-lock.json ]; then exit 0; fi
+          npx --yes --package npm@10 npm exec --yes --package create-expo-app@latest -- create-expo-app "$RUNNER_TEMP/moo-template" --template default@sdk-58 --no-install --yes
+          node <<'NODE'
+          const fs = require('node:fs');
+          const template = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/moo-template/package.json', 'utf8'));
+          const wanted = ['expo', 'expo-router', 'expo-status-bar', 'expo-constants', 'expo-linking', 'expo-font', 'expo-splash-screen', 'expo-system-ui', 'react', 'react-native', 'react-native-safe-area-context', 'react-native-screens', 'react-dom', 'react-native-web'];
+          const dependencies = {};
+          for (const name of wanted) {
+            if (!template.dependencies[name]) throw new Error('Missing template dependency: ' + name);
+            dependencies[name] = template.dependencies[name];
+          }
+          const devDependencies = {};
+          for (const name of ['typescript', '@types/react', 'eslint', 'eslint-config-expo']) {
+            const version = template.devDependencies?.[name] ?? template.dependencies?.[name];
+            if (!version) throw new Error('Missing template dev dependency: ' + name);
+            devDependencies[name] = version;
+          }
+          fs.writeFileSync('package.json', JSON.stringify({
+            name: 'moo-protein-tracker', version: '1.0.0', private: true,
+            main: 'expo-router/entry', engines: { node: '>=24' },
+            scripts: {
+              start: 'expo start', ios: 'expo start --ios', web: 'expo start --web',
+              typecheck: 'tsc --noEmit', lint: 'expo lint',
+              doctor: 'expo-doctor'
+            },
+            dependencies, devDependencies
+          }, null, 2) + '\n');
+          NODE
+          npm install
+          npm install --save-dev expo-doctor
+      - name: Validate a fresh dependency install
+        run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run doctor
+      - name: Verify iOS JavaScript bundling
+        run: npx expo export --platform ios
+      - name: Commit generated package manifest and lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: resolve stable Expo dependencies and npm lockfile"
+            git push origin HEAD:codex/moo-foundation
+          fi
