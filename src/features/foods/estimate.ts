@@ -174,8 +174,12 @@ export function fromDensity(item: CleanItem, per100g: Macros, basis: 'reference_
   const m = scaleMacros(per100g, k);
   const notes: EstimateNote[] = [...extraNotes];
   if (g.typical) notes.push('typical_portion');
-  let range = { lowG: round1((per100g.proteinG * g.low) / 100), highG: round1((per100g.proteinG * g.high) / 100) };
+  // Weight uncertainty × density uncertainty (only when USDA's own records for the food disagree).
+  const dLow = Math.min(per100g.proteinG, ref?.proteinRange100g?.lowG ?? per100g.proteinG);
+  const dHigh = Math.max(per100g.proteinG, ref?.proteinRange100g?.highG ?? per100g.proteinG);
+  let range = { lowG: round1((dLow * g.low) / 100), highG: round1((dHigh * g.high) / 100) };
   let confidence = BASE_CONFIDENCE[basis];
+  if (dHigh > dLow * 1.1) confidence -= 0.08;
   // Narrow portion ranges earn confidence; wide ones lose it.
   const spread = (g.high - g.low) / Math.max(g.grams, 1);
   confidence += spread < 0.3 ? 0.08 : spread > 0.8 ? -0.12 : 0;

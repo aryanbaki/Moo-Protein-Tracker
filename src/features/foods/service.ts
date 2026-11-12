@@ -14,7 +14,7 @@ import { Platform } from 'react-native';
 import { getSupabase } from '../../lib/supabase';
 import { mapFatSecretFood } from './fatSecret';
 import { mapOffProductResponse, mapOffSearch, OFF_USER_AGENT, offProductUrl, offSearchUrl } from './openFoodFacts';
-import { normalizeCode } from './nutrients';
+import { checkDigitOk, normalizeCode, usdaGtinQuery } from './nutrients';
 import { rankFoods, scoreFood } from './rank';
 import { checkAll, crossCheck } from './verify';
 import { FoodLookupError, type FoodItem } from './types';
@@ -132,13 +132,13 @@ export function createFoodService(partial: Partial<FoodDeps> = {}) {
    */
   async function lookupBarcode(input: string): Promise<BarcodeResult> {
     const code = normalizeCode(input);
-    if (!code) throw new FoodLookupError('invalid');
+    if (!code || !checkDigitOk(code)) throw new FoodLookupError('invalid');
     const cached = barcodeCache.get(code);
     if (cached) return cached;
 
     const [offRes, usdaRes, fsRes] = await Promise.allSettled([
       getJson(deps.fetch, offProductUrl(code), offInit()).then(({ json }) => mapOffProductResponse(json, code)),
-      usda({ query: code, dataTypes: ['Branded'], pageSize: 5 }).then((foods) => pickBarcodeMatch(foods, code)),
+      usda({ query: usdaGtinQuery(code), dataTypes: ['Branded'], pageSize: 5 }).then((foods) => pickBarcodeMatch(foods, code)),
       // Independent third opinion (verification only); failures are ignored.
       deps.fatSecretBarcode(code).then((json) => mapFatSecretFood(json, code)),
     ]);

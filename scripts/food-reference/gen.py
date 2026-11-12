@@ -16,7 +16,7 @@ CHOICES = [
  ('tuna-light-canned-water', 'Tuna, light, canned in water, drained', ['canned tuna', 'tinned tuna', 'tuna in water'], 'as_sold', '1 can', False),
  ('cod-atlantic-cooked', 'Cod, cooked', ['cod'], 'cooked', '1 fillet', True),
  ('tilapia-cooked', 'Tilapia, cooked', ['tilapia'], 'cooked', '1 fillet', True),
- ('shrimp-cooked', 'Shrimp, cooked', ['shrimp', 'prawn'], 'cooked', '3 oz', False),
+ ('shrimp-cooked', 'Shrimp, cooked', ['shrimp', 'prawn'], 'cooked', '3 oz', True),
  ('egg-hard-boiled', 'Egg, hard-boiled', ['egg', 'hard boiled egg'], 'cooked', '1 large', False),
  ('egg-scrambled', 'Egg, scrambled', ['scrambled egg'], 'cooked', '1 large', False),
  ('egg-white-raw', 'Egg white', ['egg white'], 'raw', '1 large', False),
@@ -116,8 +116,12 @@ for key, name, aliases, state, plabel, use_yield in CHOICES:
     ]
     if y: parts.append(f"cookedYield: {y}")
     parts.append(f"typicalPortion: {{ label: '{label}', grams: {fmt_num(portion['grams'])} }}")
+    if r.get('proteinRange'):
+        lo, hi = r['proteinRange']
+        parts.append(f"proteinRange100g: {{ lowG: {fmt_num(lo)}, highG: {fmt_num(hi)} }}")
     if EXCLUDE.get(key): parts.append(f"exclude: [{', '.join(repr(w) for w in EXCLUDE[key])}]")
-    lines.append(f"  // {r['description']}\n  {{ {', '.join(parts)} }},")
+    note = f"{r['description']}" + ''.join(f"; range includes {a['fdc']} {a['description']}" for a in r.get('alts', []))
+    lines.append(f"  // {note}\n  {{ {', '.join(parts)} }},")
 header = '''/**
  * Bundled protein-density table, generated from USDA FoodData Central SR Legacy
  * (final release, public domain) by docs/food-data.md's procedure: values are

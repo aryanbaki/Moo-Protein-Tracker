@@ -3,7 +3,7 @@ import offNoNutriments from '../scan/__fixtures__/off-no-nutriments.json';
 import offBar from './__fixtures__/off-search-bar.json';
 import usdaChicken from './__fixtures__/usda-search-chicken.json';
 import usdaWhey from './__fixtures__/usda-search-whey.json';
-import { gramsFromServingText, macrosForGrams, macrosForServings, proteinDensity, sameBarcode } from './nutrients';
+import { checkDigitOk, gramsFromServingText, macrosForGrams, macrosForServings, proteinDensity, sameBarcode, usdaGtinQuery } from './nutrients';
 import { mapOffProductResponse, mapOffSearch, offSearchUrl } from './openFoodFacts';
 import { dedupeFoods, rankFoods } from './rank';
 import { createFoodService, OFF_SEARCHES_PER_MINUTE } from './service';
@@ -188,5 +188,31 @@ describe('food service', () => {
     const svc = createFoodService({ fetch: jest.fn() as unknown as typeof fetch, usdaSearch: async () => usdaWhey });
     await expect(svc.bestMatch('gold standard whey', { packaged: true })).resolves.toMatchObject({ id: 'usda:2101234' });
     await expect(svc.bestMatch('vanilla casein shake', { packaged: true })).resolves.toBeNull();
+  });
+});
+
+describe('scanned barcode handling', () => {
+  it('validates GS1 check digits (8-digit codes pass: may be UPC-E)', () => {
+    expect(checkDigitOk('3017620422003')).toBe(true);
+    expect(checkDigitOk('3017620422004')).toBe(false);
+    expect(checkDigitOk('0748927028669')).toBe(true);
+    expect(checkDigitOk('00748927028669')).toBe(true);
+    expect(checkDigitOk('12345678')).toBe(true);
+    expect(checkDigitOk('123')).toBe(false);
+  });
+  it('asks USDA for the 12-digit UPC an iPhone reports as a 0-prefixed EAN-13', async () => {
+    const usdaSearch = jest.fn(async () => usdaWhey);
+    const svc = createFoodService({ fetch: (async () => respond(404, null)) as unknown as typeof fetch, usdaSearch, fatSecretBarcode: async () => null });
+    const r = await svc.lookupBarcode('0748927028669');
+    expect(r.status === 'found' && r.food.id).toBe('usda:2101234');
+    expect(usdaSearch).toHaveBeenCalledWith({ query: '748927028669', dataType: ['Branded'], pageSize: 5 });
+    expect(usdaGtinQuery('00748927028669')).toBe('748927028669');
+    expect(usdaGtinQuery('3017620422003')).toBe('3017620422003');
+  });
+  it('rejects a misread before calling any API', async () => {
+    const fetch = jest.fn();
+    const svc = createFoodService({ fetch: fetch as unknown as typeof globalThis.fetch, usdaSearch: jest.fn(), fatSecretBarcode: jest.fn() });
+    await expect(svc.lookupBarcode('3017620422004')).rejects.toMatchObject({ code: 'invalid' });
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

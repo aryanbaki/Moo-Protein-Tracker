@@ -6,6 +6,7 @@ want = set()
 for s in spec:
     want.add(str(s['fdc'])); 
     if s.get('raw'): want.add(str(s['raw']))
+    for a in s.get('alt', []): want.add(str(a))
 foods = {r['fdc_id']: r['description'] for r in csv.DictReader(open(f'{d}/food.csv', newline='', encoding='utf-8')) if r['fdc_id'] in want}
 nut = {}
 IDS = {'1003': 'protein', '1008': 'kcal', '1005': 'carbs', '1004': 'fat', '1079': 'fiber'}
@@ -29,5 +30,10 @@ for s in spec:
         row['raw'] = {'fdc': int(rf), 'description': foods.get(rf), 'protein': rp}
         # Protein is conserved in cooking, so cooked weight / raw weight ≈ raw protein density / cooked density.
         row['derivedYield'] = round(rp / cp, 3) if rp and cp else None
+    if s.get('alt'):
+        # Other USDA records for the same food (e.g. salted vs no-salt tuna): their protein spread becomes a range.
+        ps = [nut.get(f, {}).get('protein')] + [nut.get(str(a), {}).get('protein') for a in s['alt']]
+        row['alts'] = [{'fdc': a, 'description': foods.get(str(a)), 'protein': nut.get(str(a), {}).get('protein')} for a in s['alt']]
+        row['proteinRange'] = [min(ps), max(ps)]
     out.append(row)
 json.dump(out, open(out_path, 'w'), indent=1)

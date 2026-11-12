@@ -1,3 +1,4 @@
+import { estimateItem } from './estimate';
 import { energyCheck } from './verify';
 import { matchReference, REFERENCE_FOODS } from './reference';
 
@@ -58,5 +59,17 @@ describe('bundled USDA reference table', () => {
     expect(raw.per100g.proteinG).toBe(22.5); // 31.02 × 0.725: USDA lists raw breast at 22.5 g
     const dryLentils = matchReference('lentils', 'raw')!;
     expect(dryLentils.per100g.proteinG).toBe(24.6); // 9.02 × 2.731 ≈ USDA raw lentils 24.63 g
+  });
+});
+
+describe('USDA records that disagree', () => {
+  it('widens the photo range for canned tuna (salted 19.44 vs no-salt 25.51 g per 100 g)', async () => {
+    const e = await estimateItem(
+      { name: 'Canned tuna', portion: '1 can', proteinG: 32, calories: 140, carbsG: 0, fatG: 1, confidence: 0.8, hints: { kind: 'whole_food', grams: 165, gramsLow: 150, gramsHigh: 170, cookState: 'not_applicable', brand: '', product: '', barcode: null, dbQuery: 'canned tuna in water', label: null, servings: null } },
+      { lookupBarcode: async () => ({ status: 'not_found' }), bestMatch: async () => null, reference: (q, c) => matchReference(q, c) },
+    );
+    expect(e.basis).toBe('reference_density');
+    expect(e.proteinG).toBe(32.1); // 19.44 × 1.65
+    expect(e.proteinRange).toEqual({ lowG: 29.2, highG: 43.4 }); // 19.44 × 1.5 … 25.51 × 1.7
   });
 });

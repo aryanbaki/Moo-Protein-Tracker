@@ -22,10 +22,13 @@ Two passes (docs/food-data.md has the design and sources):
      barcode → label photo → package → USDA density × grams → model guess, with
      a range.
    - A 50-food protein table generated from USDA SR Legacy CSVs (four
-     byte-identical mirrors, reproducible with scripts/food-reference/).
+     byte-identical mirrors, reproducible with scripts/food-reference/). It
+     matches two independent web lookups and a third copy of USDA's table.
+   - Barcodes: misreads are rejected by GS1 check digit, and USDA is asked for
+     the 12-digit UPC that iPhones report as a 0-prefixed EAN-13.
 
 ## Fresh checks for this task (Node v24.22.1)
-- Passed: npm run typecheck, npm run lint, npm test (30 suites, 343 tests),
+- Passed: npm run typecheck, npm run lint, npm test (30 suites, 347 tests),
   npm run test:setup (7), npm run export:ios, web export.
 - Passed: Playwright walks of the web export at 390x844, with the USDA and
   OFF calls stubbed by the test fixtures and no page errors:
