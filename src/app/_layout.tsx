@@ -6,7 +6,11 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { initAuth } from '../features/auth';
+import { initBilling } from '../features/billing';
 import { useLog } from '../features/log';
+import { syncReminders } from '../features/reminders';
+import { startSync } from '../features/sync';
 import { useProfile } from '../state/profile';
 import { colors } from '../theme';
 
@@ -21,6 +25,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     void useLog.getState().init();
+    void initAuth().then(() => startSync()).catch(() => {});
+    void initBilling().catch(() => {});
+    void syncReminders().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -41,6 +48,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="entry" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="settings" />
           </Stack.Protected>
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
