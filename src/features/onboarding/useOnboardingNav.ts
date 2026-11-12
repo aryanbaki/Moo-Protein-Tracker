@@ -4,8 +4,8 @@ import { useCallback, useMemo } from 'react';
 import { useProfile, type ProfileState } from '../../state/profile';
 import { nextStep, prevStep, stepHref, stepProgress, type StepContext, type StepName } from './steps';
 
-export function stepContextOf(s: Pick<ProfileState, 'answers' | 'creatine'>): StepContext {
-  return { mainGoal: s.answers.mainGoal, creatineChoice: s.answers.creatineChoice, creatineEnabled: s.creatine.enabled };
+export function stepContextOf(s: Pick<ProfileState, 'answers'>): StepContext {
+  return { mainGoal: s.answers.mainGoal, creatineChoice: s.answers.creatineChoice };
 }
 
 export const hrefOf = (step: StepName): Href => stepHref(step) as Href;
@@ -19,7 +19,6 @@ export function useOnboardingNav(step: StepName, options: { record?: boolean } =
   const record = options.record !== false;
   const mainGoal = useProfile((s) => s.answers.mainGoal);
   const creatineChoice = useProfile((s) => s.answers.creatineChoice);
-  const creatineEnabled = useProfile((s) => s.creatine.enabled);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,8 +26,8 @@ export function useOnboardingNav(step: StepName, options: { record?: boolean } =
     }, [record, step]),
   );
 
-  const progress = useMemo(() => stepProgress(step, { mainGoal, creatineChoice, creatineEnabled }), [step, mainGoal, creatineChoice, creatineEnabled]);
-  const hasBack = useMemo(() => prevStep(step, { mainGoal, creatineChoice, creatineEnabled }) !== null, [step, mainGoal, creatineChoice, creatineEnabled]);
+  const progress = useMemo(() => stepProgress(step, { mainGoal, creatineChoice }), [step, mainGoal, creatineChoice]);
+  const hasBack = useMemo(() => prevStep(step, { mainGoal, creatineChoice }) !== null, [step, mainGoal, creatineChoice]);
 
   /** Reads the store at call time, so answers saved just before are honoured. */
   const next = useCallback(

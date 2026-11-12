@@ -2,18 +2,17 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Card } from '../../components';
-import { OnboardingScaffold, formatTime, useOnboardingNav } from '../../features/onboarding';
+import { OnboardingScaffold, useOnboardingNav } from '../../features/onboarding';
+import { Cow } from '../../mascot';
 import { requestNotificationPermission, syncReminders } from '../../features/reminders';
 import { useProfile } from '../../state/profile';
 import { colors, radius, spacing } from '../../theme';
 
 export default function NotificationsStep() {
   const { next } = useOnboardingNav('notifications', { record: false });
-  const creatine = useProfile((s) => s.creatine);
   const setNotificationsAsked = useProfile((s) => s.setNotificationsAsked);
   const setMealReminders = useProfile((s) => s.setMealReminders);
   const [busy, setBusy] = useState(false);
-  const creatineReminder = creatine.enabled && creatine.reminderTime;
 
   const remindMe = async () => {
     if (busy) return;
@@ -44,55 +43,30 @@ export default function NotificationsStep() {
   return (
     <OnboardingScaffold
       step="notifications"
-      title="Want a nudge from me?"
-      subtitle="Logging is the bit people forget. A tiny moo at the right moment helps."
-      cowLine="I only moo when it matters."
+      title="Reminders?"
       cowPose="wave"
-      cowSize={112}
+      cowSize={240}
       onContinue={remindMe}
-      continueLabel={busy ? 'One sec…' : 'Remind me'}
+      continueLabel="Allow"
       continueDisabled={busy}
-      secondaryLabel="Not now"
+      secondaryLabel="Skip"
       onSecondary={notNow}
-      footnote="You can change this any time in Settings."
     >
-      {/* A picture of what a nudge looks like; not a real notification. */}
+      {/* A picture of a reminder, not a real notification. */}
       <Card style={styles.preview}>
         <View style={styles.icon}>
-          <AppText style={{ fontSize: 22 }}>🐮</AppText>
+          <Cow size={34} headOnly still />
         </View>
         <View style={{ flex: 1 }}>
-          <AppText variant="small">MOO · now</AppText>
-          <AppText variant="label">Lunch o&apos;clock!</AppText>
-          <AppText variant="caption" color={colors.text}>
-            Got 10 seconds? Feed me your protein numbers.
-          </AppText>
+          <AppText variant="small">Moo</AppText>
+          <AppText variant="label">Log lunch</AppText>
         </View>
       </Card>
-
-      <View style={styles.list}>
-        <Bullet emoji="🍽️" text="Gentle meal-time nudges to log" />
-        {creatineReminder ? <Bullet emoji="⏰" text={`Your creatine reminder at ${formatTime(creatineReminder)}`} /> : null}
-        <Bullet emoji="🤫" text="No spam. Cows are famously chill." />
-      </View>
     </OnboardingScaffold>
-  );
-}
-
-function Bullet({ emoji, text }: { emoji: string; text: string }) {
-  return (
-    <View style={styles.bullet}>
-      <AppText style={{ fontSize: 20 }}>{emoji}</AppText>
-      <AppText variant="label" style={{ flex: 1 }}>
-        {text}
-      </AppText>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   preview: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
-  icon: { width: 44, height: 44, borderRadius: radius.sm, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
-  list: { gap: spacing.sm, paddingHorizontal: spacing.xs },
-  bullet: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', minHeight: 32 },
+  icon: { width: 44, height: 44, borderRadius: radius.sm, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
 });

@@ -40,7 +40,7 @@ function Splash() {
   const bubbleStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, bubble.value), transform: [{ scale: bubble.value }] }));
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Moo! Tap to continue" onPress={() => router.replace(hrefOf('welcome'))} style={styles.screen}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Moo. Continue" onPress={() => router.replace(hrefOf('welcome'))} style={styles.screen}>
       <View style={styles.stage}>
         <Animated.View style={[styles.bubble, bubbleStyle]}>
           <CowLine text="MOO!" size={34} />

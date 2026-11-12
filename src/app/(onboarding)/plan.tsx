@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { AppText } from '../../components';
 import { FALLBACKS, applyGoalEdit, checkGoals, computeGoals, type GoalField } from '../../features/goals';
@@ -26,7 +27,7 @@ export default function PlanStep() {
   const check = useMemo(() => checkGoals(goals, weightKg, answers.sex), [goals, weightKg, answers.sex]);
   const [editing, setEditing] = useState<GoalField | null>(null);
 
-  // Coming back from the reality check via "Let me fix it": reopen that field.
+  // Coming back from the reality check via "Edit": reopen that field.
   useFocusEffect(
     useCallback(() => {
       const { reopenField, setReopenField } = usePlanUi.getState();
@@ -42,7 +43,7 @@ export default function PlanStep() {
     const verdict = checkGoals(candidate, weightKg, answers.sex)[field].verdict;
     setEditing(null);
     if (verdict === 'blocked') {
-      // Blocked values are never saved; the cow has words instead.
+      // Blocked values are never saved; the reality check takes over.
       router.push({ pathname: '/reality-check', params: { field, value: String(value) } });
       return;
     }
@@ -63,41 +64,31 @@ export default function PlanStep() {
       const c = check[field];
       if (c.verdict !== 'high' && c.verdict !== 'low') return null;
       const meta = GOAL_META[field];
-      const rangeText = `${formatNumber(c.recommended.min)}–${formatNumber(c.recommended.max)} ${meta.unit}`;
-      return {
-        field,
-        text:
-          c.verdict === 'high'
-            ? `Heads-up: ${formatNumber(goals[field])} ${meta.unit} of ${meta.short} is a lot for your size. Most people do well on ${rangeText}. Your call.`
-            : `Heads-up: ${formatNumber(goals[field])} ${meta.unit} of ${meta.short} is on the low side. Most people do well on ${rangeText}. Your call.`,
-      };
+      // Allowed but unusual: show the typical range and leave the choice with them.
+      return { field, text: `${meta.label} ${c.verdict}. Typical ${formatNumber(c.recommended.min)}–${formatNumber(c.recommended.max)} ${meta.unit}.` };
     })
     .filter((x): x is { field: GoalField; text: string } => x !== null);
-
-  const edited = goals.proteinG !== suggested.proteinG || goals.calories !== suggested.calories || goals.carbsG !== suggested.carbsG || goals.fatG !== suggested.fatG;
 
   return (
     <>
       <OnboardingScaffold
         step="plan"
-        title="Your plan is ready!"
-        subtitle="Tap any number to change it."
-        cowLine={edited ? 'Custom-built. Fancy.' : 'Fresh from the mothership.'}
+        title="Your plan"
         cowPose="dance"
-        cowSize={124}
+        cowSize={headsUp.length > 0 ? 170 : 230}
         onContinue={onContinue}
-        continueLabel="Looks good"
-        footnote="Estimates from your answers, not medical advice."
+        continueLabel="Start"
+        footnote="Estimate. Not medical advice."
       >
         <Pressable
           testID="goal-proteinG"
           accessibilityRole="button"
-          accessibilityLabel={`Daily protein goal: ${goals.proteinG} grams. Tap to edit.`}
+          accessibilityLabel={`Protein: ${goals.proteinG} grams. Edit.`}
           onPress={() => setEditing('proteinG')}
           style={({ pressed }) => [styles.hero, pressed ? styles.pressed : null]}
         >
           <AppText variant="caption" color={colors.primaryDark}>
-            Daily protein
+            Protein
           </AppText>
           <View style={styles.heroRow}>
             <AppText variant="display" color={colors.primaryDark} style={styles.heroNumber} adjustsFontSizeToFit numberOfLines={1}>
@@ -107,7 +98,9 @@ export default function PlanStep() {
               g
             </AppText>
           </View>
-          <EditHint color={colors.primaryDark} />
+          <View style={styles.pencil}>
+            <Pencil color={colors.primaryDark} />
+          </View>
         </Pressable>
 
         <View style={styles.tiles}>
@@ -116,7 +109,7 @@ export default function PlanStep() {
               key={field}
               testID={`goal-${field}`}
               accessibilityRole="button"
-              accessibilityLabel={`Daily ${GOAL_META[field].short}: ${goals[field]} ${GOAL_META[field].unit}. Tap to edit.`}
+              accessibilityLabel={`${GOAL_META[field].label}: ${goals[field]} ${GOAL_META[field].unit}. Edit.`}
               onPress={() => setEditing(field)}
               style={({ pressed }) => [styles.tile, pressed ? styles.pressed : null]}
             >
@@ -132,7 +125,6 @@ export default function PlanStep() {
 
         {headsUp.map((h) => (
           <View key={h.field} accessibilityRole="alert" style={styles.headsUp}>
-            <AppText style={{ fontSize: 18 }}>⚠️</AppText>
             <AppText variant="caption" color={colors.text} style={{ flex: 1, lineHeight: 19 }}>
               {h.text}
             </AppText>
@@ -147,11 +139,12 @@ export default function PlanStep() {
   );
 }
 
-function EditHint({ color }: { color: string }) {
+/** Says "editable" without words. */
+function Pencil({ color }: { color: string }) {
   return (
-    <AppText variant="small" color={color} style={{ opacity: 0.8 }}>
-      Tap to edit
-    </AppText>
+    <Svg width={18} height={18} viewBox="0 0 24 24">
+      <Path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 013 0l.5.5a2.1 2.1 0 010 3L8.5 19 4 20z" stroke={color} strokeWidth={2.4} strokeLinejoin="round" fill="none" />
+    </Svg>
   );
 }
 
@@ -162,6 +155,7 @@ const styles = StyleSheet.create({
   tiles: { flexDirection: 'row', gap: spacing.sm },
   tile: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.sm + 4, alignItems: 'center', gap: 2, minHeight: 44, ...shadow.card },
   tileNumber: { fontSize: 24 },
+  pencil: { position: 'absolute', top: spacing.md, right: spacing.md, opacity: 0.7 },
   dot: { width: 10, height: 10, borderRadius: 5, marginBottom: 2 },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   headsUp: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start', backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: spacing.sm + 4, borderLeftWidth: 4, borderLeftColor: colors.warning },

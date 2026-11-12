@@ -3,10 +3,10 @@ import { useProfile } from '../../state/profile';
 import type { HardestPart } from '../../types';
 
 const CHOICES: Choice<HardestPart>[] = [
-  { value: 'eating_enough', title: 'Eating enough protein', emoji: '🍗', cowLine: "Challenge accepted. I'll keep count.", cowPose: 'flex' },
-  { value: 'knowing_food', title: "Knowing what's in my food", emoji: '🔍', cowLine: "Snap a photo. I'll take a good guess.", cowPose: 'chew' },
-  { value: 'remembering', title: 'Remembering to log', emoji: '🧠', cowLine: "I'll nudge you. Gently. With my nose.", cowPose: 'wave' },
-  { value: 'consistency', title: 'Staying consistent', emoji: '📅', cowLine: 'One day at a time. Herd mentality.', cowPose: 'idle' },
+  { value: 'eating_enough', label: 'Eating enough', cowPose: 'chew' },
+  { value: 'knowing_food', label: "Knowing what's in food", cowPose: 'shrug' },
+  { value: 'remembering', label: 'Remembering to log', cowPose: 'shocked' },
+  { value: 'consistency', label: 'Staying consistent', cowPose: 'sweat' },
 ];
 
 export default function HardestPartStep() {
@@ -16,12 +16,11 @@ export default function HardestPartStep() {
   return (
     <ChoiceStep
       step="hardest-part"
-      title="What's the hardest part?"
+      title="Hardest part"
       choices={CHOICES}
       value={value}
       onSelect={(hardestPart) => setAnswers({ hardestPart })}
       onContinue={() => next()}
-      idleLine="Tell me everything. I've got big ears."
     />
   );
 }

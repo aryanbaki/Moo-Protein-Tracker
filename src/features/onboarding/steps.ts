@@ -11,16 +11,13 @@ export const ALL_STEPS = [
   'gym-days',
   'hardest-part',
   'enough-protein',
-  'sex',
-  'birth-year',
+  'about', // sex + birth year
   'body',
   'target-weight',
   'pace',
   'chart',
   'creatine',
-  'creatine-no',
-  'creatine-dose',
-  'creatine-reminder',
+  'creatine-setup', // dose + reminder
   'notifications',
   'loading',
   'plan',
@@ -37,8 +34,6 @@ const TRANSIENT: readonly StepName[] = ['index', 'loading'];
 export interface StepContext {
   mainGoal?: MainGoal;
   creatineChoice?: CreatineChoice;
-  /** False when someone "thinking about it" chose to decide later. */
-  creatineEnabled?: boolean;
 }
 
 export function needsWeightTarget(mainGoal?: MainGoal): boolean {
@@ -51,13 +46,9 @@ export function isStepIncluded(step: StepName, ctx: StepContext): boolean {
     case 'pace':
       // Unknown yet: assume the longer path so progress never jumps backwards.
       return ctx.mainGoal === undefined || needsWeightTarget(ctx.mainGoal);
-    case 'creatine-no':
-      return ctx.creatineChoice === 'no';
-    case 'creatine-dose':
-      // Unknown yet: assume the longer path so progress never jumps backwards.
+    case 'creatine-setup':
+      // "No" goes straight on. Unknown yet: assume the longer path so progress never jumps backwards.
       return ctx.creatineChoice !== 'no';
-    case 'creatine-reminder':
-      return ctx.creatineChoice !== 'no' && !(ctx.creatineChoice === 'thinking' && ctx.creatineEnabled === false);
     default:
       return true;
   }
@@ -99,15 +90,25 @@ export function stepProgress(current: StepName, ctx: StepContext = {}): { value:
   return { value: (index + 1) / counted.length, index: index + 1, total: counted.length };
 }
 
+/** Step names saved by builds from before screens were merged. */
+const RENAMED: Readonly<Record<string, StepName>> = {
+  sex: 'about',
+  'birth-year': 'about',
+  'creatine-no': 'creatine',
+  'creatine-dose': 'creatine-setup',
+  'creatine-reminder': 'creatine-setup',
+};
+
 /**
  * Where to send someone who quit mid-flow. Unknown or no-longer-valid steps
  * fall back to the start; the intro screens are not worth resuming into.
  */
 export function resumeStep(saved: string | null | undefined, ctx: StepContext = {}): StepName | null {
-  if (!isStepName(saved)) return null;
-  if (saved === 'index' || saved === 'welcome') return null;
-  if (!isStepIncluded(saved, ctx)) return null;
-  return saved;
+  const step = typeof saved === 'string' && Object.prototype.hasOwnProperty.call(RENAMED, saved) ? RENAMED[saved] : saved;
+  if (!isStepName(step)) return null;
+  if (step === 'index' || step === 'welcome') return null;
+  if (!isStepIncluded(step, ctx)) return null;
+  return step;
 }
 
 /** Route path for a step ("/goal"); the splash lives at "/". */

@@ -55,7 +55,7 @@ function SheetBody({ field, value, recommended, onSave, onClose }: GoalEditSheet
   return (
     <>
       <AppText accessibilityRole="header" variant="heading" center>
-        Daily {meta.short}
+        {meta.label}
       </AppText>
       <View style={styles.inputRow}>
         <TextInput
@@ -78,7 +78,7 @@ function SheetBody({ field, value, recommended, onSave, onClose }: GoalEditSheet
       </View>
       {recommended ? (
         <AppText variant="caption" center>
-          Typical for you: {formatNumber(recommended.min)}–{formatNumber(recommended.max)} {meta.unit}
+          Typical {formatNumber(recommended.min)}–{formatNumber(recommended.max)} {meta.unit}
         </AppText>
       ) : null}
       <View style={styles.buttons}>

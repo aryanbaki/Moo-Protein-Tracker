@@ -3,9 +3,9 @@ import { useProfile } from '../../state/profile';
 import type { EnoughProtein } from '../../types';
 
 const CHOICES: Choice<EnoughProtein>[] = [
-  { value: 'yes', title: 'Yes, I think so', emoji: '😎', cowLine: "Confident! Let's prove it.", cowPose: 'flex' },
-  { value: 'no', title: 'Probably not', emoji: '😬', cowLine: 'Honest! We can fix that.', cowPose: 'idle' },
-  { value: 'no_idea', title: 'No idea', emoji: '🤷', cowLine: "Most people don't. That's why I'm here.", cowPose: 'shrug' },
+  { value: 'yes', label: 'Yes', cowPose: 'flex' },
+  { value: 'no', label: 'No', cowPose: 'sweat' },
+  { value: 'no_idea', label: 'Not sure', cowPose: 'shrug' },
 ];
 
 export default function EnoughProteinStep() {
@@ -15,12 +15,11 @@ export default function EnoughProteinStep() {
   return (
     <ChoiceStep
       step="enough-protein"
-      title="Are you getting enough protein today?"
+      title="Enough protein now?"
       choices={CHOICES}
       value={value}
       onSelect={(enoughProtein) => setAnswers({ enoughProtein })}
       onContinue={() => next()}
-      idleLine="Gut feeling. I have four."
     />
   );
 }

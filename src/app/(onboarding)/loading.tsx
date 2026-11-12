@@ -10,7 +10,7 @@ import { UfoScene } from '../../mascot';
 import { useProfile } from '../../state/profile';
 import { colors, radius, spacing } from '../../theme';
 
-const LINES = ['Weighing the hay…', 'Counting grams…', 'Calibrating the cow…'] as const;
+const LINES = ['Weighing', 'Counting', 'Calibrating'] as const;
 const STEP_MS = 1250;
 const DONE_HOLD_MS = 500;
 
@@ -34,9 +34,9 @@ export default function LoadingStep() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.body}>
-        <UfoScene size={250} active />
+        <UfoScene size={290} active />
         <AppText accessibilityRole="header" variant="heading" center>
-          Beaming up your plan
+          Building plan
         </AppText>
         <View accessibilityLiveRegion="polite" accessibilityLabel={`Building your plan, step ${Math.min(done + 1, LINES.length)} of ${LINES.length}`} style={styles.list}>
           {LINES.map((text, i) => {

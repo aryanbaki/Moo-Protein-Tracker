@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { AppText, Card } from '../../components';
+import { AppText } from '../../components';
 import { WheelPicker } from '../../components/WheelPicker';
-import { FALLBACKS, formatWeight, kgToLb, lbToKg, paceDirection, safePaceMaxKgPerWeek } from '../../features/goals';
+import { FALLBACKS, kgToLb, lbToKg, paceDirection, safePaceMaxKgPerWeek } from '../../features/goals';
 import { OnboardingScaffold, nearest, range, useOnboardingNav } from '../../features/onboarding';
 import type { CowPose } from '../../mascot';
 import { useProfile } from '../../state/profile';
-import { colors, spacing } from '../../theme';
+import { colors } from '../../theme';
 
 /** A 500 kcal/day surplus is roughly this much per week; faster gain is not offered. */
 const MAX_GAIN_KG = 0.46;
@@ -40,22 +40,12 @@ export default function PaceStep() {
   const value = nearest(values, toDisplay(Math.min(paceKg, maxKg)));
   const share = toKg(value) / weightKg; // fraction of body weight per week
 
-  let line: string;
+  // The cow shows how hard the pace is: relaxed, steady, or sweating at the cap.
   let pose: CowPose;
-  if (gaining) {
-    const top = value === values[values.length - 1];
-    line = top ? "Full steam. That's my top gear." : 'Slow gains stick. Trust the cud.';
-    pose = top ? 'flex' : 'chew';
-  } else if (share > 0.0075) {
-    line = "Phew! That's as fast as I'll go.";
-    pose = 'sweat';
-  } else if (share > 0.005) {
-    line = 'A brisk trot. Doable.';
-    pose = 'idle';
-  } else {
-    line = 'Easy does it. Very sustainable.';
-    pose = 'chew';
-  }
+  if (gaining) pose = value === values[values.length - 1] ? 'flex' : 'chew';
+  else if (share > 0.0075) pose = 'sweat';
+  else if (share > 0.005) pose = 'idle';
+  else pose = 'chew';
 
   const targetKg = answers.targetWeightKg;
   const distanceKg = targetKg ? Math.abs(targetKg - weightKg) : 0;
@@ -64,12 +54,9 @@ export default function PaceStep() {
   return (
     <OnboardingScaffold
       step="pace"
-      title={gaining ? 'How fast do you want to gain?' : 'How fast do you want to go?'}
-      subtitle="Weight change per week."
-      cowLine={line}
+      title="Pace"
       cowPose={pose}
-      cowSize={112}
-      footnote="Rough estimates, not medical advice."
+      cowSize={260}
       onContinue={() => {
         setAnswers({ paceKgPerWeek: Math.round(toKg(value) * 1000) / 1000 });
         next();
@@ -81,25 +68,18 @@ export default function PaceStep() {
           values={values}
           value={value}
           onChange={(v) => setPaceKg(toKg(v))}
-          format={(v) => `${v} ${unit}`}
+          format={(v) => `${v} ${unit}/week`}
           accessibilityLabel="Pace per week"
           accessibilityValueText={(v) => `${v} ${metric ? 'kilograms' : 'pounds'} per week`}
           visibleCount={3}
-          width={200}
+          width={220}
         />
       </View>
-      <Card style={{ gap: spacing.xs }}>
-        {weeks && targetKg ? (
-          <AppText variant="label" center>
-            About {weeks} {weeks === 1 ? 'week' : 'weeks'} to reach {formatWeight(targetKg, units)}
-          </AppText>
-        ) : null}
-        <AppText variant="caption" center color={colors.textSecondary}>
-          {gaining
-            ? 'Moo caps the surplus at 500 kcal a day, so the wheel stops here.'
-            : `The wheel stops at about 1% of your body weight a week (${Math.round(toDisplay(safeMaxKg) * 10) / 10} ${unit}).`}
+      {weeks && targetKg ? (
+        <AppText variant="heading" center color={colors.primaryDark}>
+          {weeks} {weeks === 1 ? 'week' : 'weeks'}
         </AppText>
-      </Card>
+      ) : null}
     </OnboardingScaffold>
   );
 }

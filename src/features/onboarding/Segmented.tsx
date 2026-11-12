@@ -5,7 +5,8 @@ import { colors, radius, shadow } from '../../theme';
 
 export interface SegmentedProps<T extends string> {
   options: readonly { value: T; label: string }[];
-  value: T;
+  /** Undefined until something is picked. */
+  value: T | undefined;
   onChange: (value: T) => void;
   accessibilityLabel: string;
 }
@@ -37,6 +38,6 @@ export function Segmented<T extends string>({ options, value, onChange, accessib
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, padding: 4, alignSelf: 'center' },
-  item: { minHeight: 44, minWidth: 96, paddingHorizontal: 18, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  item: { minHeight: 44, minWidth: 88, paddingHorizontal: 18, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   selected: { backgroundColor: colors.surface, ...shadow.card },
 });

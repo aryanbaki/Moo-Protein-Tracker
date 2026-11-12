@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '../../components';
 import { WheelPicker } from '../../components/WheelPicker';
 import { FALLBACKS, cmToFtIn, cmToIn, inToCm, kgToLb, lbToKg } from '../../features/goals';
 import { OnboardingScaffold, Segmented, nearest, range, useOnboardingNav } from '../../features/onboarding';
@@ -42,10 +41,8 @@ export default function BodyStep() {
     <OnboardingScaffold
       step="body"
       title="Height and weight"
-      subtitle="Ballpark is fine. You can change these later."
-      cowLine={metric ? "I'm 635 kg. Zero judgement here." : "I'm 1,400 lb. Zero judgement here."}
       cowPose="idle"
-      cowSize={104}
+      cowSize={230}
       onContinue={() => {
         setAnswers({ heightCm: Math.round(heightCm * 10) / 10, weightKg: Math.round(weightKg * 10) / 10 });
         next();
@@ -55,9 +52,6 @@ export default function BodyStep() {
       {/* key: remount the wheels when the unit system (and so the value list) changes */}
       <View key={units} style={styles.wheels}>
         <View style={styles.col}>
-          <AppText variant="caption" center>
-            Height
-          </AppText>
           <WheelPicker
             testID="wheel-height"
             values={metric ? CM : INCHES}
@@ -70,9 +64,6 @@ export default function BodyStep() {
           />
         </View>
         <View style={styles.col}>
-          <AppText variant="caption" center>
-            Weight
-          </AppText>
           <WheelPicker
             testID="wheel-weight"
             values={metric ? KG : LB}
@@ -91,6 +82,6 @@ export default function BodyStep() {
 
 const styles = StyleSheet.create({
   wheels: { flexDirection: 'row', gap: spacing.md, justifyContent: 'center' },
-  col: { flex: 1, maxWidth: 170, gap: spacing.xs },
+  col: { flex: 1, maxWidth: 170 },
   wheel: { alignSelf: 'stretch' },
 });

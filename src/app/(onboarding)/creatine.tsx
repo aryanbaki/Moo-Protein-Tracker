@@ -3,9 +3,9 @@ import { useProfile } from '../../state/profile';
 import type { CreatineChoice } from '../../types';
 
 const CHOICES: Choice<CreatineChoice>[] = [
-  { value: 'yes', title: 'Yes', emoji: '✅', cowLine: "Nice. I'll help you remember it.", cowPose: 'flex' },
-  { value: 'no', title: 'No', emoji: '🙅', cowLine: 'Cool, cool. More grass for me.', cowPose: 'chew' },
-  { value: 'thinking', title: 'Thinking about it', emoji: '🤔', cowLine: "I'll give you the short version.", cowPose: 'idle' },
+  { value: 'yes', label: 'Yes', cowPose: 'flex' },
+  { value: 'no', label: 'No', cowPose: 'shrug' },
+  { value: 'thinking', label: 'Maybe', cowPose: 'chew' },
 ];
 
 export default function CreatineStep() {
@@ -16,17 +16,15 @@ export default function CreatineStep() {
   return (
     <ChoiceStep
       step="creatine"
-      title="Do you take creatine?"
-      subtitle="Totally optional. I can tick it off with you each day."
+      title="Creatine?"
       choices={CHOICES}
       value={value}
       onSelect={(creatineChoice) => {
         setAnswers({ creatineChoice });
-        // "No" switches it off now; "yes"/"thinking" decide on the next screens.
+        // "No" switches it off now and skips the set-up screen; "yes"/"maybe" decide there.
         if (creatineChoice === 'no') setCreatine({ enabled: false, reminderTime: null });
       }}
       onContinue={() => next()}
-      idleLine="No pressure. I only take grass."
     />
   );
 }

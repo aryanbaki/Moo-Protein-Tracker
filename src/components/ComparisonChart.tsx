@@ -7,15 +7,12 @@ import { colors, radius, shadow, spacing } from '../theme';
 import { AppText } from './index';
 
 export interface ComparisonChartProps {
-  title?: string;
-  /** Label for the rising line. */
+  /** At most three words. Pass null when the screen's own title already says it. */
+  title?: string | null;
+  /** Legend label for the rising line. */
   withLabel?: string;
-  /** Label for the flat, wobbly line. */
+  /** Legend label for the flat, wobbly line. */
   withoutLabel?: string;
-  /** What "up" means. */
-  axisLabel?: string;
-  startLabel?: string;
-  endLabel?: string;
   /** Honesty note. Always shown; this chart is a drawing, not measured data. */
   caption?: string;
   /** Draw-on duration in ms. */
@@ -78,19 +75,10 @@ const WEEK_TICKS = Array.from({ length: 8 }, (_, i) => X0 + ((X1 - X0) * i) / 7)
 
 /**
  * "With vs without" illustration: a rising green line against a wobbly flat
- * red one, drawn on from left to right. It deliberately has no numbers and
- * always carries a caption saying it is an illustration.
+ * red one, drawn on from left to right. It has no numbers and no axis text:
+ * just a legend and a caption saying it is an illustration.
  */
-export function ComparisonChart({
-  title = 'Tracking beats guessing',
-  withLabel = 'With Moo',
-  withoutLabel = 'Winging it',
-  axisLabel = 'Days hitting your protein goal',
-  startLabel = 'Week 1',
-  endLabel = 'Week 8',
-  caption = 'Illustration, not data from a study',
-  duration = 1600,
-}: ComparisonChartProps) {
+export function ComparisonChart({ title = 'Tracking vs guessing', withLabel = 'With Moo', withoutLabel = 'Without', caption = 'Illustration', duration = 1600 }: ComparisonChartProps) {
   const reduceMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
   const height = (width * VB_H) / VB_W;
@@ -112,18 +100,19 @@ export function ComparisonChart({
   const labelStyle = useAnimatedStyle(() => ({ opacity: labels.value }));
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
-  const scale = width / VB_W;
 
   return (
     <View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={`${title}. ${caption}. ${axisLabel}, ${startLabel} to ${endLabel}: the "${withLabel}" line climbs steadily, the "${withoutLabel}" line wobbles and stays flat.`}
+      accessibilityLabel={`${title ? `${title}. ` : ''}${caption}: the "${withLabel}" line climbs steadily, the "${withoutLabel}" line wobbles and stays flat.`}
       style={styles.card}
     >
-      <AppText variant="label" style={styles.title}>
-        {title}
-      </AppText>
+      {title ? (
+        <AppText variant="label" style={styles.title}>
+          {title}
+        </AppText>
+      ) : null}
 
       <View style={styles.legend}>
         <View style={styles.legendItem}>
@@ -144,10 +133,6 @@ export function ComparisonChart({
         </View>
       </View>
 
-      <AppText variant="small" style={styles.axisLabel}>
-        ↑ {axisLabel}
-      </AppText>
-
       <View onLayout={onLayout} style={[styles.plot, { height: height || undefined, aspectRatio: height ? undefined : VB_W / VB_H }]}>
         {width > 0 ? (
           <>
@@ -167,31 +152,15 @@ export function ComparisonChart({
               </Svg>
             </Animated.View>
 
-            {/* End markers and direct labels appear once the lines arrive. */}
+            {/* End markers appear once the lines arrive. */}
             <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, labelStyle]}>
               <Svg width={width} height={height} viewBox={`0 0 ${VB_W} ${VB_H}`} style={StyleSheet.absoluteFill}>
                 <Circle cx={WOBBLY_END[0]} cy={WOBBLY_END[1]} r={5} fill={colors.bad} stroke={colors.surface} strokeWidth={2} />
                 <Circle cx={RISING_END[0]} cy={RISING_END[1]} r={6} fill={colors.good} stroke={colors.surface} strokeWidth={2} />
               </Svg>
-              <View style={[styles.tag, { right: (VB_W - RISING_END[0]) * scale + 12, top: RISING_END[1] * scale - 12 }]}>
-                <AppText variant="small" color={colors.text} style={styles.tagText}>
-                  {withLabel}
-                </AppText>
-              </View>
-              <View style={[styles.tag, { right: (VB_W - WOBBLY_END[0]) * scale + 12, top: WOBBLY_END[1] * scale - 34 }]}>
-                <AppText variant="small" color={colors.text} style={styles.tagText}>
-                  {withoutLabel}
-                </AppText>
-              </View>
             </Animated.View>
           </>
         ) : null}
-      </View>
-
-      <View style={styles.xAxis}>
-        <AppText variant="small">{startLabel}</AppText>
-        <AppText variant="small">…</AppText>
-        <AppText variant="small">{endLabel}</AppText>
       </View>
 
       <AppText variant="small" center style={styles.caption}>
@@ -209,11 +178,7 @@ const styles = StyleSheet.create({
   swatch: { width: 18, height: 4, borderRadius: 2 },
   swatchDashed: { width: 18, flexDirection: 'row', justifyContent: 'space-between' },
   dash: { width: 4, height: 3, borderRadius: 2 },
-  axisLabel: { marginTop: spacing.xs },
   plot: { width: '100%' },
   clip: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
-  tag: { position: 'absolute', backgroundColor: colors.surface, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  tagText: { fontSize: 12 },
-  xAxis: { flexDirection: 'row', justifyContent: 'space-between' },
-  caption: { marginTop: spacing.xs, fontStyle: 'italic' },
+  caption: { marginTop: spacing.xs },
 });

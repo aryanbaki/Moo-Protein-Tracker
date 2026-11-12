@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -13,12 +13,13 @@ export interface OnboardingScaffoldProps {
   step: StepName;
   /** Set false for screens that must not be resumed into (e.g. reality check). */
   record?: boolean;
+  /** The only heading on the screen: six words or fewer. There is no subtitle slot. */
   title: string;
-  subtitle?: string;
-  /** The cow slot. Pass `cow={null}` to hide it, or `cowSlot` to replace it. */
+  /** The cow reacts through its pose, not through words. */
   cowPose?: CowPose;
-  cowLine?: string;
+  /** Width at a 844 pt tall screen; it shrinks on shorter ones. */
   cowSize?: number;
+  /** Replaces the cow (the reality check adds its one allowed speech bubble here). */
   cowSlot?: ReactNode;
   children?: ReactNode;
   /** Pinned primary button. */
@@ -34,23 +35,19 @@ export interface OnboardingScaffoldProps {
   /** Override the back arrow (defaults to the step list). */
   onBack?: () => void;
   hideBack?: boolean;
-  /** Centre the body vertically (intro-style screens). */
-  centered?: boolean;
 }
 
 /**
  * Shared frame for every onboarding question: back arrow + progress bar on
- * top, title, the cow with a one-liner, the question body, and a Continue
- * button pinned to the bottom.
+ * top, one short title, the cow, the question body, and a Continue button
+ * pinned to the bottom. Deliberately no subtitle and no speech-bubble props.
  */
 export function OnboardingScaffold({
   step,
   record,
   title,
-  subtitle,
   cowPose = 'idle',
-  cowLine,
-  cowSize = 150,
+  cowSize = 200,
   cowSlot,
   children,
   continueLabel = 'Continue',
@@ -62,9 +59,9 @@ export function OnboardingScaffold({
   footnote,
   onBack,
   hideBack,
-  centered,
 }: OnboardingScaffoldProps) {
   const { back, progress, hasBack } = useOnboardingNav(step, { record });
+  const size = useCowSize(cowSize);
   const showBack = !hideBack && (hasBack || !!onBack);
 
   return (
@@ -91,29 +88,15 @@ export function OnboardingScaffold({
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, centered ? styles.centered : null]}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.titles}>
-          <AppText accessibilityRole="header" variant="heading" center style={styles.title}>
-            {title}
-          </AppText>
-          {subtitle ? (
-            <AppText variant="caption" center style={styles.subtitle}>
-              {subtitle}
-            </AppText>
-          ) : null}
-        </View>
+        <AppText accessibilityRole="header" variant="heading" center style={styles.title}>
+          {title}
+        </AppText>
 
-        {cowSlot !== undefined ? (
-          cowSlot
-        ) : (
-          <View style={styles.cow}>
-            {cowLine ? <CowLine text={cowLine} /> : null}
-            <Cow size={cowSize} pose={cowPose} />
-          </View>
-        )}
+        <View style={styles.cow}>{cowSlot !== undefined ? cowSlot : <Cow size={size} pose={cowPose} />}</View>
 
         {children}
       </ScrollView>
@@ -133,9 +116,16 @@ export function OnboardingScaffold({
   );
 }
 
+/** Cow width scaled to the screen height, so short phones keep the body on screen. */
+export function useCowSize(size: number): number {
+  const { height } = useWindowDimensions();
+  const k = Math.min(1, Math.max(0.55, (height - 480) / 364));
+  return Math.round(size * k);
+}
+
 /**
- * What the cow says: the mascot's speech bubble (which pops in and reads
- * itself to screen readers), sized for onboarding and kept inside the screen.
+ * The cow's speech bubble. Only two places may use it: "MOO!" on the splash
+ * and the single line on the reality check.
  */
 export function CowLine({ text, size = 19 }: { text: string; size?: number }) {
   return (
@@ -153,11 +143,9 @@ const styles = StyleSheet.create({
   progress: { flex: 1, justifyContent: 'center', minHeight: 44 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg, gap: spacing.md, flexGrow: 1 },
-  centered: { justifyContent: 'center' },
-  titles: { gap: spacing.xs },
   title: { lineHeight: 34 },
-  subtitle: { lineHeight: 20, paddingHorizontal: spacing.sm },
-  cow: { alignItems: 'center', gap: spacing.xs },
+  // Takes the spare height, so the cow sits centred between title and body.
+  cow: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
   line: { alignSelf: 'center', maxWidth: '100%' },
   footer: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.sm, gap: spacing.sm },
 });

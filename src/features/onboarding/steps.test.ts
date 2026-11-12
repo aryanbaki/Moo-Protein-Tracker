@@ -18,24 +18,28 @@ describe('onboarding steps', () => {
     }
   });
 
-  it('creatine "no" goes to the no-pressure screen and then notifications', () => {
+  it('sex and birth year share one step', () => {
+    expect(nextStep('enough-protein')).toBe('about');
+    expect(nextStep('about')).toBe('body');
+    expect(prevStep('body')).toBe('about');
+    expect(getSteps()).not.toContain('sex');
+    expect(getSteps()).not.toContain('birth-year');
+  });
+
+  it('creatine "no" goes straight to notifications', () => {
     const ctx = { mainGoal: 'maintain', creatineChoice: 'no' } as const;
-    expect(nextStep('creatine', ctx)).toBe('creatine-no');
-    expect(nextStep('creatine-no', ctx)).toBe('notifications');
-    expect(prevStep('notifications', ctx)).toBe('creatine-no');
+    expect(nextStep('creatine', ctx)).toBe('notifications');
+    expect(prevStep('notifications', ctx)).toBe('creatine');
+    expect(getSteps(ctx)).not.toContain('creatine-no');
   });
 
-  it('creatine "yes" goes through dose and reminder', () => {
-    const ctx = { mainGoal: 'maintain', creatineChoice: 'yes' } as const;
-    expect(nextStep('creatine', ctx)).toBe('creatine-dose');
-    expect(nextStep('creatine-dose', ctx)).toBe('creatine-reminder');
-    expect(nextStep('creatine-reminder', ctx)).toBe('notifications');
-  });
-
-  it('"thinking" skips the reminder when they decide later', () => {
-    const ctx = { creatineChoice: 'thinking', creatineEnabled: false } as const;
-    expect(nextStep('creatine-dose', ctx)).toBe('notifications');
-    expect(nextStep('creatine-dose', { creatineChoice: 'thinking', creatineEnabled: true })).toBe('creatine-reminder');
+  it('creatine "yes" and "thinking" set dose and reminder on one step', () => {
+    for (const creatineChoice of ['yes', 'thinking'] as const) {
+      const ctx = { mainGoal: 'maintain', creatineChoice } as const;
+      expect(nextStep('creatine', ctx)).toBe('creatine-setup');
+      expect(nextStep('creatine-setup', ctx)).toBe('notifications');
+      expect(prevStep('notifications', ctx)).toBe('creatine-setup');
+    }
   });
 
   it('back never lands on splash or loading', () => {
@@ -55,7 +59,8 @@ describe('onboarding steps', () => {
     expect(stepProgress('welcome')).toBeNull();
     expect(stepProgress('loading')).toBeNull();
     const ctx = { mainGoal: 'maintain', creatineChoice: 'no' } as const;
-    expect(stepProgress('goal', ctx)).toEqual({ value: 1 / 12, index: 1, total: 12 });
+    expect(stepProgress('goal', ctx)).toEqual({ value: 1 / 10, index: 1, total: 10 });
+    expect(stepProgress('goal', { mainGoal: 'lose_fat', creatineChoice: 'yes' })?.total).toBe(13);
     expect(stepProgress('plan', ctx)?.value).toBe(1);
     expect(stepProgress('pace', ctx)).toBeNull();
   });
@@ -84,6 +89,18 @@ describe('onboarding steps', () => {
     expect(resumeStep('pace', { mainGoal: 'maintain' })).toBeNull();
     expect(resumeStep('pace', { mainGoal: 'lose_fat' })).toBe('pace');
     expect(resumeStep('plan', { mainGoal: 'maintain' })).toBe('plan');
+    expect(resumeStep('creatine-setup', { creatineChoice: 'no' })).toBeNull();
+    expect(resumeStep('creatine-setup', { creatineChoice: 'thinking' })).toBe('creatine-setup');
+  });
+
+  it('resumes steps saved before screens were merged', () => {
+    expect(resumeStep('sex')).toBe('about');
+    expect(resumeStep('birth-year')).toBe('about');
+    expect(resumeStep('creatine-no', { creatineChoice: 'no' })).toBe('creatine');
+    expect(resumeStep('creatine-dose', { creatineChoice: 'yes' })).toBe('creatine-setup');
+    expect(resumeStep('creatine-reminder', { creatineChoice: 'yes' })).toBe('creatine-setup');
+    expect(resumeStep('creatine-reminder', { creatineChoice: 'no' })).toBeNull();
+    expect(resumeStep('toString')).toBeNull();
   });
 
   it('maps steps to routes', () => {

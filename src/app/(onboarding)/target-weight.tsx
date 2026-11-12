@@ -38,25 +38,17 @@ export default function TargetWeightStep() {
     return weightKg + (losing ? -1 : 1) * (metric ? (losing ? 5 : 3) : lbToKg(losing ? 10 : 5));
   });
   const value = nearest(values, toDisplay(targetKg));
-  const diff = Math.abs(value - current);
+  // Already at the lowest target Moo offers: nothing to lose, so no pace either.
   const stuck = losing && values.length === 1 && value === current;
-
-  const line = stuck
-    ? "You're already light on your hooves."
-    : losing
-      ? `${diff} ${unit} to go. Let's mooove.`
-      : `${diff} ${unit} of gains. Beefy!`;
 
   return (
     <OnboardingScaffold
       step="target-weight"
-      title="What's your target weight?"
-      subtitle={stuck ? "Moo won't aim lower than this. We'll focus on eating well." : `You're at ${current} ${unit} now.`}
-      cowLine={line}
-      cowPose={losing ? 'idle' : 'flex'}
+      title="Target weight"
+      cowPose={stuck ? 'shrug' : losing ? 'idle' : 'flex'}
+      cowSize={240}
       onContinue={() => {
         if (stuck) {
-          // Nothing to lose: no pace to pick either.
           setAnswers({ targetWeightKg: weightKg, paceKgPerWeek: undefined });
           goTo('chart');
           return;
