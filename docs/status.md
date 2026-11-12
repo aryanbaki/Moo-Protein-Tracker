@@ -1,5 +1,51 @@
 # Current project status
 
+Last verified: November 12, 2026 (UTC). Repository: aryanbaki/Moo-Protein-Tracker.
+Branch: claude/modest-ramanujan-n495q3 (started from codex/moo-foundation).
+PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/2
+
+## v1 app work completed in this task
+The owner replaced the earlier small scope; see docs/product.md. Implemented:
+shared base (dependencies, theme, UI primitives, profile store, route skeleton),
+SVG cow mascot (10 poses, fill view, UFO scene, confetti, icon and splash),
+full onboarding with goal maths and guard rails, Home with persistent logging
+(SQLite on native, JSON on web) and creatine check-off, food scanner (photo with
+a mock analyser, barcode via Open Food Facts, analyze-food edge function),
+accounts, sync and paywall in local-only preview mode, Progress, Settings and
+local reminders, and rewritten docs.
+
+## Fresh checks for this task (Node v24.22.1)
+- Passed: npm run typecheck, npm run lint, npm test (21 suites, 256 tests),
+  npm run test:setup, npm run export:ios, web export.
+- Passed: end-to-end browser walk at 390x844 on the web export with no page
+  errors: onboarding (including the 1,000 g reality check), skip account,
+  close paywall, quick add, mock photo scan, creatine check-off, manual entry
+  to goal reached, Progress, Settings.
+- Failed locally: npm run doctor, 1 check (React Native Directory reports
+  @react-native-masked-view/masked-view, a transitive dependency of expo-router,
+  as unmaintained and has no metadata for two Expo packages). See the PR checks
+  for the CI result on the pushed commit.
+- Not run: native build, device install, real camera, notifications, purchases,
+  Sign in with Apple, live Supabase, the edge functions (no Deno here; never
+  executed), live Open Food Facts lookup (blocked by this sandbox's proxy).
+
+## Blockers needing the owner
+Anthropic API key as a Supabase secret; a Supabase project (none was created);
+RevenueCat key, entitlement "premium" and prices; Apple bundle identifier, team
+and App Store products; real Terms and Privacy URLs (placeholders in
+src/features/billing/links.ts). The RevenueCat webhook that sets
+profiles.is_premium is documented in supabase/README.md but not built.
+
+## Next concrete task
+Owner provides the accounts and keys above; then run the Supabase migration,
+deploy the two edge functions, set the EXPO_PUBLIC variables in EAS, and start a
+separately authorised preview build to test on an iPhone. No build, submission
+or update was started by this task.
+
+The older evidence below is preserved for history and is superseded by the above.
+
+# Earlier status (historical)
+
 Last verified: November 11, 2026 (America/Chicago).
 Repository: aryanbaki/Moo-Protein-Tracker. Branch: codex/moo-foundation.
 PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/1
