@@ -81,6 +81,17 @@ splash-screen/status-bar config plugins. No major framework migration or
 network-check exclusion was used. Validation results above are refreshed after
 these changes; the first run is retained here to explain the correction.
 
+## Verified GitHub check run after correction
+[Checks run 43126960951](https://github.com/aryanbaki/Moo-Protein-Tracker/actions/runs/43126960951)
+for code commit **36ffb74e79a27ebdf2d876b65b6041261f24d219** completed successfully.
+GitHub's PR merge checkout used Node v24.22.2 and npm 11.19.1, consistent with
+the selected Node 24 LTS major. Installation, all seven guard tests, TypeScript,
+lint, **Expo Doctor 20/20**, and iOS JavaScript export (1131 modules) passed.
+Doctor's network-dependent checks therefore succeeded on GitHub; the local
+Codex network/token blocker below remains separate. This final documentation
+handoff records that specific verified code commit, not an unobserved future run.
+No manual delivery workflow was dispatched.
+
 ## Network and authentication blocker
 Final Doctor reports:
 - Expo config schema, **exp.host**: `TypeError: fetch failed` and

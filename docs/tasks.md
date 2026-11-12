@@ -41,8 +41,9 @@ read-only repository permissions and validates future pull requests.
 - Added docs/cloud-setup.md and docs/design.md; expanded shared agent handoffs,
   product validation assumptions, update/rollback guidance, and Apple setup steps.
 - Local clean install, TypeScript, lint, iOS export, guard tests, schema, and
-  workflow validation passed. Doctor is blocked on network; account/signing setup
-  remains unverified. See status.md for exact current errors and results.
+  workflow validation passed. After SDK patch correction, GitHub CI also passed
+  all checks including Doctor 20/20 and iOS export. Local Codex network/token
+  access remains blocked; account/signing setup is unverified. See status.md.
 
 ## Next steps
 1. Use the published cloud environment in a fresh session; verify live Expo

@@ -45,7 +45,8 @@ Read this file before changing Moo. Claude Code must follow these same instructi
   manual, guarded, and separate from read-only checks. Never open readiness gates
   without the evidence listed in docs/cloud-setup.md. Updates remain disabled
   until the exact existing project is verified and configured.
-- Do not start EAS builds or submissions unless the current task authorizes them.
+- Do not start EAS builds, submissions, OTA publications, or rollbacks unless
+  the current task authorizes them.
 - Never invent account IDs, EAS project IDs, bundle identifiers, or credentials.
 - Never commit secrets, signing materials, tokens, or .env files. Use each cloud
   provider's secure secret store; Codex, Claude, GitHub, and Expo stores are separate.
