@@ -4,6 +4,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { getSupabase } from '../../lib/supabase';
 import type { ScanResult } from '../../types';
 import { MOCK_DELAY_MS, mockItems } from './mock';
+import { refineWithDatabases } from '../foods/estimate';
 import { sanitizeItems } from './sanitize';
 
 export type ScanErrorCode = 'no_food' | 'offline' | 'limit' | 'unauthorized' | 'server';
@@ -63,7 +64,7 @@ export async function analyzePhoto(uri: string): Promise<PhotoScanResult> {
     // The picture is not needed for the demo, so a failed downscale must not block it.
     const seed = await downscaleToBase64(uri).then((r) => String(r.base64.length), () => 'moo');
     await wait(MOCK_DELAY_MS);
-    return { items: mockItems(seed), source: 'photo', mock: true };
+    return { items: await refineWithDatabases(sanitizeItems(mockItems(seed))), source: 'photo', mock: true };
   }
 
   const supabase = getSupabase();
@@ -96,5 +97,6 @@ export async function analyzePhoto(uri: string): Promise<PhotoScanResult> {
   if (data && typeof data === 'object' && 'error' in data) throw new ScanError(codeFromFailure(200, data));
   const items = sanitizeItems((data as { items?: unknown } | null)?.items);
   if (items.length === 0) throw new ScanError('no_food');
-  return { items, source: 'photo', mock: false };
+  // Turn the analyser's guesses into protein from the food databases (barcode, label, package, density).
+  return { items: await refineWithDatabases(items), source: 'photo', mock: false };
 }

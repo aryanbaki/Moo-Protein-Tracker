@@ -2,11 +2,12 @@
 import { Platform } from 'react-native';
 
 import type { ScanResult } from '../../types';
-import { foodToScannedItem, FoodLookupError, foods } from '../foods';
+import { foodToScannedItem, FoodLookupError, foods, type FoodItem } from '../foods';
 import { clampNumber } from './sanitize';
 
 export type BarcodeLookup =
-  | { status: 'found'; result: ScanResult }
+  /** `food` is set by the multi-source lookup (full nutrition panel, reliability). */
+  | { status: 'found'; result: ScanResult; food?: FoodItem }
   | { status: 'not_found' }
   /** Product exists but has no usable nutrition numbers. */
   | { status: 'no_nutrition'; name: string };
@@ -130,7 +131,7 @@ export async function lookupBarcodeAnySource(code: string): Promise<BarcodeLooku
   try {
     const r = await foods().lookupBarcode(code);
     if (r.status !== 'found') return r;
-    return { status: 'found', result: { source: 'barcode', items: [foodToScannedItem(r.food)] } };
+    return { status: 'found', result: { source: 'barcode', items: [foodToScannedItem(r.food)] }, food: r.food };
   } catch (e) {
     const c = e instanceof FoodLookupError ? e.code : 'server';
     throw new BarcodeError(c === 'invalid' || c === 'offline' ? c : 'server');

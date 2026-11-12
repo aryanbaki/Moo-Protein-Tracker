@@ -1,18 +1,25 @@
 /** Words and small formatting for the food search screen. */
+import { LEVEL_LABEL } from './levels';
 import { round1 } from './nutrients';
 import { displayName } from './toScan';
-import type { FoodItem } from './types';
+import type { FoodItem, FoodProvider } from './types';
 
-export const SOURCE_LABEL: Record<FoodItem['quality'], string> = {
-  label: 'USDA · brand label',
-  reference: 'USDA · lab data',
-  community: 'Open Food Facts',
+export const PROVIDER_NAME: Record<FoodProvider, string> = {
+  usda: 'USDA',
+  openfoodfacts: 'Open Food Facts',
 };
 
+/** "Verified · USDA + Open Food Facts", "Brand data · USDA". */
+export function sourceLine(food: FoodItem): string {
+  const level = food.reliability?.level ?? (food.quality === 'label' ? 'label' : food.quality === 'reference' ? 'reference' : 'community');
+  const sources = (food.reliability?.sources ?? [food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ');
+  return `${LEVEL_LABEL[level]} · ${sources}`;
+}
+
 export const SEARCH_ERRORS: Record<'offline' | 'server' | 'rate_limited', string> = {
-  offline: "Can't reach the food databases. Check your connection.",
-  server: "The food databases didn't answer. Try again in a moment.",
-  rate_limited: 'Lots of searching! Give it a minute and try again.',
+  offline: 'No connection',
+  server: 'Search failed',
+  rate_limited: 'Too many searches. Try again in a minute.',
 };
 
 /** "24 g protein · 1 scoop (31 g)" or "31 g protein · per 100 g". */
@@ -23,5 +30,5 @@ export function proteinLine(food: FoodItem): string {
 }
 
 export function resultA11yLabel(food: FoodItem): string {
-  return `${displayName(food)}. ${proteinLine(food)}. Source: ${SOURCE_LABEL[food.quality]}.`;
+  return `${displayName(food)}. ${proteinLine(food)}. ${sourceLine(food)}.`;
 }

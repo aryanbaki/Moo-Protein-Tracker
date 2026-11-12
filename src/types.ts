@@ -80,6 +80,14 @@ export interface WeightLog {
   weightKg: number;
 }
 
+/**
+ * How far a food's numbers can be trusted, best first:
+ * verified (two sources agree) → label (manufacturer data) → reference (lab
+ * data for a generic food) → community (volunteer-entered) → label_photo
+ * (read off a photo of the label) → estimate (portion guessed from a photo).
+ */
+export type ReliabilityLevel = 'verified' | 'label' | 'reference' | 'community' | 'label_photo' | 'estimate';
+
 /** Result of analysing a photo or barcode. */
 export interface ScannedItem {
   name: string;
@@ -90,6 +98,10 @@ export interface ScannedItem {
   fatG: number;
   /** 0..1 */
   confidence: number;
+  /** Plausible protein range for one portion, when the value is an estimate. */
+  proteinRange?: { lowG: number; highG: number };
+  /** How the numbers were obtained; absent for older results. */
+  reliability?: ReliabilityLevel;
 }
 
 export interface ScanResult {

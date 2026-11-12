@@ -6,8 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../../components';
 import { foods, foodToScannedItem, FoodLookupError, type FoodItem } from '../../features/foods';
-import { proteinLine, resultA11yLabel, SEARCH_ERRORS, SOURCE_LABEL } from '../../features/foods/copy';
+import { PROVIDER_NAME, proteinLine, resultA11yLabel, SEARCH_ERRORS, sourceLine } from '../../features/foods/copy';
 import { displayName } from '../../features/foods/toScan';
+import { NutritionFacts } from '../../features/foods/ui/NutritionFacts';
 import { isValidDay, useLog } from '../../features/log';
 import { toEditable, totalsOf, type EditableItem } from '../../features/scan/totals';
 import { CloseButton } from '../../features/scan/ui/parts';
@@ -31,7 +32,7 @@ export default function FoodSearchScreen() {
 
   const [query, setQuery] = useState('');
   const [state, setState] = useState<State>({ k: 'idle' });
-  const [picked, setPicked] = useState<EditableItem[] | null>(null);
+  const [picked, setPicked] = useState<{ food: FoodItem; items: EditableItem[] } | null>(null);
   const [saving, setSaving] = useState(false);
   const job = useRef(0);
 
@@ -72,25 +73,30 @@ export default function FoodSearchScreen() {
   const view: State = query.trim().length < 2 ? { k: 'idle' } : state;
 
   if (picked) {
+    const { food, items } = picked;
+    // Weight of what is being logged: label servings × serving weight, else 100 g portions.
+    const grams = (food.serving?.grams ?? 100) * (items[0]?.servings ?? 1);
     return (
       <ResultView
-        items={picked}
+        items={items}
         source="barcode"
         mock={false}
         saving={saving}
-        onChange={setPicked}
-        onSave={() => void save(picked)}
+        onChange={(next) => setPicked({ food, items: next })}
+        onSave={() => void save(items)}
         onRetake={() => setPicked(null)}
-        retakeLabel="Back to results"
+        retakeLabel="Back"
         onClose={close}
-      />
+      >
+        {food.panel && items.length > 0 ? <NutritionFacts panel={food.panel} grams={grams} source={(food.reliability?.sources ?? [food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} /> : null}
+      </ResultView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <AppText variant="heading" style={{ flex: 1 }}>Search foods</AppText>
+        <AppText variant="heading" style={{ flex: 1 }}>Search</AppText>
         <CloseButton onPress={close} />
       </View>
       <TextInput
@@ -109,9 +115,7 @@ export default function FoodSearchScreen() {
       {view.k === 'loading' ? <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} /> : null}
       {view.k === 'error' ? <AppText variant="caption" center style={{ marginTop: spacing.lg }}>{view.message}</AppText> : null}
       {view.k === 'idle' ? (
-        <AppText variant="caption" center style={{ marginTop: spacing.lg }}>
-          Searches USDA FoodData Central and Open Food Facts. Brand label data is the most reliable.
-        </AppText>
+        <AppText variant="small" center style={{ marginTop: spacing.lg }}>USDA · Open Food Facts</AppText>
       ) : null}
       {view.k === 'done' ? (
         <FlatList
@@ -119,10 +123,10 @@ export default function FoodSearchScreen() {
           keyExtractor={(f) => f.id}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.xl }}
-          ListEmptyComponent={<AppText variant="caption" center style={{ marginTop: spacing.lg }}>Nothing found. Try fewer words, or type it in by hand.</AppText>}
+          ListEmptyComponent={<AppText variant="caption" center style={{ marginTop: spacing.lg }}>Nothing found</AppText>}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => setPicked(toEditable([foodToScannedItem(item)]))}
+              onPress={() => setPicked({ food: item, items: toEditable([foodToScannedItem(item)]) })}
               accessibilityRole="button"
               accessibilityLabel={resultA11yLabel(item)}
               style={({ pressed }) => [styles.row, pressed ? { opacity: 0.85 } : null]}
@@ -130,7 +134,7 @@ export default function FoodSearchScreen() {
               <View style={{ flex: 1 }}>
                 <AppText variant="label" numberOfLines={2}>{displayName(item)}</AppText>
                 <AppText variant="caption" numberOfLines={1}>{proteinLine(item)}</AppText>
-                <AppText variant="small">{SOURCE_LABEL[item.quality]}</AppText>
+                <AppText variant="small">{sourceLine(item)}</AppText>
               </View>
               <AppText variant="label" color={colors.textSecondary}>›</AppText>
             </Pressable>

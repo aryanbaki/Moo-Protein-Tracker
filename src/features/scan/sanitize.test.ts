@@ -1,4 +1,4 @@
-import { clampNumber, MAX_ITEMS, parseAnalysis, sanitizeItems } from './sanitize';
+import { clampNumber, MAX_ITEMS, parseAnalysis, sanitizeHints, sanitizeItems } from './sanitize';
 
 describe('sanitizeItems', () => {
   it('maps snake_case model output and rounds', () => {
@@ -48,6 +48,63 @@ describe('parseAnalysis', () => {
     expect(parseAnalysis({ stop_reason: 'refusal', content: [] }, 'report_food')).toEqual({ ok: false, error: 'server' });
     expect(parseAnalysis(tool({ is_food: true, items: [{ name: 'x' }] }), 'other_tool')).toEqual({ ok: false, error: 'server' });
     expect(parseAnalysis(null, 'report_food')).toEqual({ ok: false, error: 'server' });
+  });
+});
+
+describe('sanitizeHints (protein-model clues)', () => {
+  const modelItem = {
+    name: 'Whey shake',
+    portion: '1 scoop',
+    protein_g: 24,
+    calories: 120,
+    carbs_g: 3,
+    fat_g: 1.5,
+    confidence: 0.9,
+    kind: 'packaged',
+    grams: 31,
+    grams_low: 40,
+    grams_high: 25,
+    cook_state: 'not_applicable',
+    db_query: 'whey protein powder',
+    brand: 'Optimum  Nutrition',
+    product: null,
+    barcode: '7489 2702-8669',
+    label: { serving_text: '1 scoop (31 g)', serving_size_g: 31, protein_g: 24, calories: 120, carbs_g: null, fat_g: 1.5 },
+    servings: 2,
+  };
+
+  it('reads snake_case model output, fixes ranges and digits', () => {
+    expect(sanitizeHints(modelItem)).toEqual({
+      kind: 'packaged',
+      grams: 31,
+      gramsLow: 25,
+      gramsHigh: 40,
+      cookState: 'not_applicable',
+      brand: 'Optimum Nutrition',
+      product: '',
+      barcode: '748927028669',
+      dbQuery: 'whey protein powder',
+      label: { servingText: '1 scoop (31 g)', servingSizeG: 31, proteinG: 24, calories: 120, carbsG: null, fatG: 1.5 },
+      servings: 2,
+    });
+  });
+
+  it('round-trips through the function response (camelCase under hints)', () => {
+    const [once] = sanitizeItems([modelItem]);
+    const [twice] = sanitizeItems(JSON.parse(JSON.stringify([once])));
+    expect(twice).toEqual(once);
+    expect(once!.hints!.barcode).toBe('748927028669');
+  });
+
+  it('drops guessed or junk values', () => {
+    const h = sanitizeHints({ kind: 'whole_food', grams: -5, grams_low: 'lots', grams_high: 1e9, cook_state: 'charred', barcode: '12345', label: { protein_g: null, calories: null }, servings: 0 })!;
+    expect(h).toMatchObject({ grams: null, gramsLow: null, gramsHigh: null, cookState: 'unknown', barcode: null, label: null, servings: null });
+    expect(sanitizeHints({ kind: 'spaceship' })).toBeUndefined();
+    expect(sanitizeItems([{ name: 'Rice', protein_g: 4 }])[0]!.hints).toBeUndefined();
+  });
+
+  it('fills the middle when only a low/high was given', () => {
+    expect(sanitizeHints({ kind: 'whole_food', grams: null, grams_low: 100, grams_high: 200 })).toMatchObject({ grams: 150, gramsLow: 100, gramsHigh: 200 });
   });
 });
 

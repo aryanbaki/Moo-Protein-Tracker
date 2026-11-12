@@ -14,7 +14,8 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 
 const USDA_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 const DATA_TYPES = new Set(['Branded', 'Foundation', 'SR Legacy', 'Survey (FNDDS)']);
-const KEEP_NUTRIENTS = new Set([1003, 1004, 1005, 1008, 1062, 2047, 2048]);
+// Every nutrient the app's nutrition panel reads (src/features/foods/panel.ts NUTRIENTS) plus kJ.
+const KEEP_NUTRIENTS = new Set([1003, 1004, 1005, 1008, 1057, 1062, 1063, 1079, 1087, 1089, 1090, 1092, 1093, 1095, 1106, 1114, 1162, 1235, 1253, 1257, 1258, 1292, 1293, 2000, 2047, 2048]);
 const TIMEOUT_MS = 10_000;
 
 type Hit = Record<string, unknown>;

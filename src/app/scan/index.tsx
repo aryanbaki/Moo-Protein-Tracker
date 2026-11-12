@@ -4,6 +4,9 @@ import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { canPhotoScan, FREE_PHOTO_SCANS, presentPaywall, useBilling } from '../../features/billing';
+import type { FoodItem } from '../../features/foods';
+import { PROVIDER_NAME } from '../../features/foods/copy';
+import { NutritionFacts } from '../../features/foods/ui/NutritionFacts';
 import { useLog } from '../../features/log';
 import { analyzePhoto, ScanError } from '../../features/scan/analyze';
 import { BarcodeError, lookupBarcodeAnySource } from '../../features/scan/barcode';
@@ -17,7 +20,7 @@ import { AnalyzingView, FallbackCapture, LimitView, ProblemView } from '../../fe
 type Phase =
   | { k: 'capture' }
   | { k: 'analyzing'; kind: ScanMode; uri?: string }
-  | { k: 'result'; source: ScanMode; items: EditableItem[]; mock: boolean; uri?: string }
+  | { k: 'result'; source: ScanMode; items: EditableItem[]; mock: boolean; uri?: string; food?: FoodItem }
   | { k: 'problem'; code: ProblemCode; retry?: { kind: 'photo'; uri: string } | { kind: 'barcode'; code: string } }
   | { k: 'limit' };
 
@@ -75,7 +78,7 @@ export default function ScanScreen() {
     try {
       const found = await lookupBarcodeAnySource(code);
       if (id !== job.current) return;
-      if (found.status === 'found') setPhase({ k: 'result', source: 'barcode', items: toEditable(found.result.items), mock: false });
+      if (found.status === 'found') setPhase({ k: 'result', source: 'barcode', items: toEditable(found.result.items), mock: false, food: found.food });
       else setPhase({ k: 'problem', code: found.status });
     } catch (e) {
       if (id !== job.current) return;
@@ -128,7 +131,11 @@ export default function ScanScreen() {
           onSave={() => void save(phase.items, phase.source)}
           onRetake={backToCapture}
           onClose={close}
-        />
+        >
+          {phase.food?.panel && phase.items[0] ? (
+            <NutritionFacts panel={phase.food.panel} grams={(phase.food.serving?.grams ?? 100) * phase.items[0].servings} source={(phase.food.reliability?.sources ?? [phase.food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} />
+          ) : null}
+        </ResultView>
       );
 
     case 'limit':

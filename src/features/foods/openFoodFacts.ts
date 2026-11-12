@@ -4,11 +4,12 @@
  * at most 100 product reads and 10 searches per minute per IP.
  */
 import { gramsFromServingText, isRecord, KJ_PER_KCAL, makeMacros, normalizeCode, num, str } from './nutrients';
+import { panelFromOff, scalePanel } from './panel';
 import type { FoodItem, Macros } from './types';
 
 export const OFF_PRODUCT_URL = 'https://world.openfoodfacts.org/api/v2/product';
 export const OFF_SEARCH_URL = 'https://world.openfoodfacts.org/cgi/search.pl';
-export const OFF_FIELDS = 'code,product_name,brands,nutriments,serving_size,serving_quantity';
+export const OFF_FIELDS = 'code,product_name,brands,nutriments,serving_size,serving_quantity,data_sources_tags';
 /** Generic client name; deliberately carries no user or device details. */
 export const OFF_USER_AGENT = 'ProteinTrackerApp/1.0 (Expo)';
 
@@ -21,6 +22,12 @@ function readBasis(n: Record<string, unknown>, suffix: '_serving' | '_100g'): Ma
     carbs: num(n[`carbohydrates${suffix}`]),
     fat: num(n[`fat${suffix}`]),
   });
+}
+
+/** OFF tags products bulk-imported from USDA's database (e.g. "database-usda-ndb-import"); those copy USDA's numbers. */
+export function importedFromUsda(p: Record<string, unknown>): boolean {
+  const tags = Array.isArray(p.data_sources_tags) ? p.data_sources_tags : [];
+  return tags.some((t) => typeof t === 'string' && /usda/i.test(t));
 }
 
 /** Maps one OFF product object (not the envelope) to a FoodItem, or null when it has no usable numbers. */
@@ -40,6 +47,9 @@ export function mapOffProduct(p: unknown, fallbackCode?: string): FoodItem | nul
   if (!per100g && !serving) return null;
 
   const code = normalizeCode(str(p.code) || fallbackCode || '');
+  // Per-100 g panel; when OFF only has per-serving numbers, derive it from the serving weight.
+  let panel = panelFromOff(nutriments, '_100g');
+  if (Object.keys(panel).length === 0 && servingGrams) panel = scalePanel(panelFromOff(nutriments, '_serving'), 100 / servingGrams);
   const productName = str(p.product_name, 80);
   const brand = str(p.brands).split(',')[0]?.trim() || null;
   return {
@@ -51,6 +61,8 @@ export function mapOffProduct(p: unknown, fallbackCode?: string): FoodItem | nul
     quality: 'community',
     per100g,
     serving,
+    panel: Object.keys(panel).length ? panel : null,
+    ...(importedFromUsda(p) ? { derivedFrom: ['usda' as const] } : {}),
   };
 }
 

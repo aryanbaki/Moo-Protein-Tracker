@@ -1,7 +1,7 @@
 // Moo: photo → nutrition estimate. Supabase Edge Function (Deno).
 //
 // POST { image_base64: string, media_type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' }
-// 200  { items: ScannedItem[], source: 'photo' }
+// 200  { items: CleanItem[], source: 'photo' }   items may carry `hints` for the app's protein model
 // 401  { error: 'unauthorized' }   no/invalid JWT, or an anonymous user
 // 402  { error: 'limit' }          free user has used every free scan
 // 422  { error: 'no_food' }        nothing edible in the picture
@@ -28,17 +28,24 @@ const TOOL_NAME = 'report_food';
 const REQUEST_TIMEOUT_MS = 50_000;
 
 const SYSTEM_PROMPT = [
-  'You estimate nutrition from a single photo of food for a protein-tracking app.',
+  'You estimate nutrition from a single photo of food for a protein-tracking app. Protein is what matters most.',
   `Always answer by calling the ${TOOL_NAME} tool exactly once; do not answer in plain text.`,
   'List each distinct food or drink you can see as its own item (at most 8), with a short plain name, the portion you see in everyday units plus an approximate weight or volume (for example "1 fillet, about 140 g"), and your best estimate of protein, calories, carbohydrate and fat for that portion.',
-  'Estimate the portion actually visible, using plates, cutlery and hands for scale. Keep calories consistent with the macros (4 kcal per g protein and carbohydrate, 9 per g fat).',
+  'Estimate the portion actually visible, using plates, cutlery, hands and packaging for scale. Keep calories consistent with the macros (4 kcal per g protein and carbohydrate, 9 per g fat).',
+  'For every item also fill in: kind (packaged = a wrapped or boxed product, whole_food = a single recognisable food such as chicken, eggs or rice, mixed_dish = several foods combined such as a burrito, curry or salad, drink); grams, grams_low and grams_high = your best guess and a realistic low and high for the edible weight in grams (ml for drinks); cook_state (raw, cooked, not_applicable, unknown); and db_query = a short generic name a nutrition database would use, with the preparation, e.g. "chicken breast roasted", "egg hard-boiled", "greek yogurt plain nonfat".',
+  'Weights matter more than anything else for protein: judge cooked meat and fish by their cooked weight, and say cooked when it is cooked.',
+  'If a brand or product name is printed on a package, copy it into brand and product exactly. If barcode digits are clearly readable, copy them into barcode; never guess digits.',
+  'If a nutrition facts label is readable, copy its per-serving numbers into label exactly as printed (serving_text, serving_size_g, protein_g, calories, carbs_g, fat_g) and set servings to how many label servings are shown or being eaten (default 1). Never invent label numbers you cannot read; use null for anything not visible.',
   'Set confidence from 0 to 1 per item: lower it when the food is partly hidden, mixed, sauced, or the portion is hard to judge.',
   'If the photo shows no food or drink, call the tool with is_food false and an empty items list. Never invent food that is not visible.',
 ].join(' ');
 
+const NULLABLE_NUMBER = { type: ['number', 'null'] };
+const NULLABLE_STRING = { type: ['string', 'null'] };
+
 const TOOL = {
   name: TOOL_NAME,
-  description: 'Report the foods visible in the photo with estimated portions and nutrition.',
+  description: 'Report the foods visible in the photo with estimated portions, nutrition, and the clues needed to look them up.',
   strict: true,
   input_schema: {
     type: 'object',
@@ -51,7 +58,7 @@ const TOOL = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['name', 'portion', 'protein_g', 'calories', 'carbs_g', 'fat_g', 'confidence'],
+          required: ['name', 'portion', 'protein_g', 'calories', 'carbs_g', 'fat_g', 'confidence', 'kind', 'grams', 'grams_low', 'grams_high', 'cook_state', 'db_query', 'brand', 'product', 'barcode', 'label', 'servings'],
           properties: {
             name: { type: 'string', description: 'Short food name, e.g. "Grilled chicken breast".' },
             portion: { type: 'string', description: 'Visible portion, e.g. "1 cup cooked, about 160 g".' },
@@ -60,6 +67,35 @@ const TOOL = {
             carbs_g: { type: 'number', description: 'Grams of carbohydrate in that portion.' },
             fat_g: { type: 'number', description: 'Grams of fat in that portion.' },
             confidence: { type: 'number', description: 'How sure you are, from 0 to 1.' },
+            kind: { type: 'string', enum: ['packaged', 'whole_food', 'mixed_dish', 'drink'] },
+            grams: { ...NULLABLE_NUMBER, description: 'Best guess of the edible weight in grams (ml for drinks).' },
+            grams_low: { ...NULLABLE_NUMBER, description: 'Realistic lowest weight.' },
+            grams_high: { ...NULLABLE_NUMBER, description: 'Realistic highest weight.' },
+            cook_state: { type: 'string', enum: ['raw', 'cooked', 'not_applicable', 'unknown'] },
+            db_query: { type: 'string', description: 'Generic database name with preparation, e.g. "salmon fillet baked".' },
+            brand: { ...NULLABLE_STRING, description: 'Brand printed on the package, or null.' },
+            product: { ...NULLABLE_STRING, description: 'Product name printed on the package, or null.' },
+            barcode: { ...NULLABLE_STRING, description: 'Barcode digits only if clearly readable, else null.' },
+            label: {
+              description: 'Per-serving numbers from a readable nutrition facts label, or null.',
+              anyOf: [
+                { type: 'null' },
+                {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['serving_text', 'serving_size_g', 'protein_g', 'calories', 'carbs_g', 'fat_g'],
+                  properties: {
+                    serving_text: { type: 'string', description: 'Serving as printed, e.g. "1 scoop (31 g)".' },
+                    serving_size_g: NULLABLE_NUMBER,
+                    protein_g: NULLABLE_NUMBER,
+                    calories: NULLABLE_NUMBER,
+                    carbs_g: NULLABLE_NUMBER,
+                    fat_g: NULLABLE_NUMBER,
+                  },
+                },
+              ],
+            },
+            servings: { ...NULLABLE_NUMBER, description: 'Label servings shown or eaten, e.g. 2 for two bars.' },
           },
         },
       },
@@ -96,7 +132,7 @@ async function callAnthropic(apiKey: string, imageBase64: string, mediaType: str
         role: 'user',
         content: [
           { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
-          { type: 'text', text: 'What food is in this photo? Report it with the tool.' },
+          { type: 'text', text: 'What food is in this photo, and how much protein? Report it with the tool.' },
         ],
       },
     ],

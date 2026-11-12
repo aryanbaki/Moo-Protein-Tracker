@@ -24,5 +24,6 @@ export function foodToScannedItem(food: FoodItem): ScannedItem {
     carbsG: round1(macros.carbsG),
     fatG: round1(macros.fatG),
     confidence: CONFIDENCE[food.quality],
+    reliability: food.reliability?.level ?? (food.quality === 'label' ? 'label' : food.quality === 'reference' ? 'reference' : 'community'),
   };
 }

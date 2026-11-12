@@ -1,7 +1,7 @@
 /**
  * The one entry point the app uses for food data. Chains the free sources:
  *
- *   barcode → Open Food Facts → USDA Branded (GTIN match)
+ *   barcode → Open Food Facts ∥ USDA Branded (GTIN match), cross-checked
  *   text    → USDA (generic + branded) ∥ Open Food Facts, merged and ranked
  *   name    → best single match, for turning a photo guess like
  *             "Quest cookies & cream protein bar" into real label numbers
@@ -15,6 +15,7 @@ import { getSupabase } from '../../lib/supabase';
 import { mapOffProductResponse, mapOffSearch, OFF_USER_AGENT, offProductUrl, offSearchUrl } from './openFoodFacts';
 import { normalizeCode } from './nutrients';
 import { rankFoods, scoreFood } from './rank';
+import { checkAll, crossCheck } from './verify';
 import { FoodLookupError, type FoodItem } from './types';
 import { ALL_TYPES, GENERIC_TYPES, mapUsdaSearch, pickBarcodeMatch, USDA_SEARCH_URL, usdaSearchBody, type UsdaSearchParams } from './usda';
 
@@ -105,34 +106,42 @@ export function createFoodService(partial: Partial<FoodDeps> = {}) {
     return mapUsdaSearch(await deps.usdaSearch(usdaSearchBody(params)));
   }
 
-  /** Barcode → food. Open Food Facts first (worldwide, fast GET), then USDA Branded by GTIN. */
+  /**
+   * Barcode → food. Asks Open Food Facts and USDA Branded (GTIN match) at the
+   * same time, then cross-checks them: the result says whether a second source
+   * confirmed the numbers. Either source alone is enough to answer.
+   */
   async function lookupBarcode(input: string): Promise<BarcodeResult> {
     const code = normalizeCode(input);
     if (!code) throw new FoodLookupError('invalid');
     const cached = barcodeCache.get(code);
     if (cached) return cached;
 
-    let off: BarcodeResult = { status: 'not_found' };
-    let offError: FoodLookupError | null = null;
-    try {
-      const { json } = await getJson(deps.fetch, offProductUrl(code), offInit());
-      off = mapOffProductResponse(json, code);
-    } catch (e) {
-      offError = e instanceof FoodLookupError ? e : new FoodLookupError('server');
-    }
-    if (off.status === 'found') return remember(barcodeCache, code, off);
+    const [offRes, usdaRes] = await Promise.allSettled([
+      getJson(deps.fetch, offProductUrl(code), offInit()).then(({ json }) => mapOffProductResponse(json, code)),
+      usda({ query: code, dataTypes: ['Branded'], pageSize: 5 }).then((foods) => pickBarcodeMatch(foods, code)),
+    ]);
 
-    try {
-      const match = pickBarcodeMatch(await usda({ query: code, dataTypes: ['Branded'], pageSize: 5 }), code);
-      if (match) return remember(barcodeCache, code, { status: 'found', food: match });
-    } catch (e) {
-      // Both sources failed: report the first source's error so "offline" stays "offline".
-      if (offError) throw offError;
-      if (off.status === 'no_nutrition') return off;
+    const candidates: FoodItem[] = [];
+    if (offRes.status === 'fulfilled' && offRes.value.status === 'found') candidates.push(offRes.value.food);
+    if (usdaRes.status === 'fulfilled' && usdaRes.value) candidates.push(usdaRes.value);
+    const best = crossCheck(candidates);
+    if (best) return remember(barcodeCache, code, { status: 'found', food: best });
+
+    if (offRes.status === 'fulfilled' && offRes.value.status === 'no_nutrition') return offRes.value;
+    // Nothing found. Only an error if no source answered at all; report the first one so "offline" stays "offline".
+    if (offRes.status === 'rejected' && usdaRes.status === 'rejected') {
+      const e: unknown = offRes.reason;
       throw e instanceof FoodLookupError ? e : new FoodLookupError('server');
     }
-    if (offError) throw offError;
-    return remember(barcodeCache, code, off);
+    if (offRes.status === 'rejected') {
+      const e: unknown = offRes.reason;
+      // USDA answered "no match" but Open Food Facts (the main barcode source) never answered: don't claim "not found".
+      throw e instanceof FoodLookupError ? e : new FoodLookupError('server');
+    }
+    // Cache "not found" only when every source answered; a failed source may know it next time.
+    const notFound: BarcodeResult = { status: 'not_found' };
+    return usdaRes.status === 'fulfilled' ? remember(barcodeCache, code, notFound) : notFound;
   }
 
   /**
@@ -154,7 +163,7 @@ export function createFoodService(partial: Partial<FoodDeps> = {}) {
       const first = settled[0] as PromiseRejectedResult;
       throw first.reason instanceof FoodLookupError ? first.reason : new FoodLookupError('server');
     }
-    const ranked = rankFoods(ok.flatMap((s) => s.value), q, 50);
+    const ranked = rankFoods(checkAll(ok.flatMap((s) => s.value)), q, 50);
     return remember(searchCache, key, ranked).slice(0, opts.limit ?? 30);
   }
 

@@ -1,3 +1,6 @@
+import type { NutrientPanel } from './panel';
+import type { Reliability } from './verify';
+
 /**
  * Food database records shared by every provider (Open Food Facts, USDA
  * FoodData Central). Dependency-free so pure mapping code and tests can use it.
@@ -40,6 +43,18 @@ export interface FoodItem {
   per100g: Macros | null;
   /** One label serving. Null when the source has no serving information. */
   serving: (Serving & { macros: Macros }) | null;
+  /**
+   * Full nutrition-facts panel per 100 g (fiber, sugars, sodium, vitamins…),
+   * when the source has it. Macros above stay the source of truth for logging.
+   */
+  panel?: NutrientPanel | null;
+  /**
+   * Providers this record's numbers were copied from (e.g. an Open Food Facts
+   * product imported from USDA). Agreement with those is not independent.
+   */
+  derivedFrom?: FoodProvider[];
+  /** Set by the cross-check: how far these numbers can be trusted, and why. */
+  reliability?: Reliability;
 }
 
 export type FoodErrorCode = 'invalid' | 'offline' | 'server' | 'rate_limited';

@@ -12,6 +12,8 @@ function tokens(s: string): string[] {
 }
 
 const QUALITY_BONUS: Record<FoodItem['quality'], number> = { label: 2, reference: 2, community: 1 };
+/** When a cross-check ran, its level replaces the raw quality bonus. */
+const LEVEL_BONUS: Record<string, number> = { verified: 3, label: 2, reference: 2, community: 1, label_photo: 0.5, estimate: 0 };
 
 /** Higher is better. Exported for tests. */
 export function scoreFood(food: FoodItem, query: string): number {
@@ -24,7 +26,7 @@ export function scoreFood(food: FoodItem, query: string): number {
   if (hits === q.length) score += 3;
   // Short names that are mostly the query ("Chicken breast") beat long ones.
   score -= Math.max(0, nameTokens.length - q.length) * 0.15;
-  score += QUALITY_BONUS[food.quality];
+  score += food.reliability ? (LEVEL_BONUS[food.reliability.level] ?? 0) : QUALITY_BONUS[food.quality];
   if (food.serving) score += 0.5;
   return score;
 }

@@ -105,6 +105,7 @@ describe('portion maths', () => {
       carbsG: 3,
       fatG: 1.5,
       confidence: 0.95,
+      reliability: 'label',
     });
   });
 });
@@ -124,15 +125,15 @@ describe('ranking', () => {
 });
 
 describe('food service', () => {
-  it('uses Open Food Facts first for barcodes and caches', async () => {
+  it('asks both sources for a barcode, answers from either, and caches', async () => {
     const fetch = jest.fn(async () => respond(200, offPerServing));
     const usdaSearch = jest.fn(async () => usdaWhey);
     const svc = createFoodService({ fetch: fetch as unknown as typeof globalThis.fetch, usdaSearch });
     const r = await svc.lookupBarcode('3017620422003');
-    expect(r.status).toBe('found');
+    expect(r.status === 'found' && r.food).toMatchObject({ provider: 'openfoodfacts', reliability: { level: 'community', checks: ['single_source'] } });
     await svc.lookupBarcode('3017620422003');
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(usdaSearch).not.toHaveBeenCalled();
+    expect(usdaSearch).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to USDA Branded by GTIN when Open Food Facts has nothing', async () => {

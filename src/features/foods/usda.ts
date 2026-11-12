@@ -9,6 +9,7 @@
  * Search results report nutrients per 100 g (or 100 ml for drinks).
  */
 import { gramsFromServingText, isRecord, KJ_PER_KCAL, makeMacros, normalizeCode, num, round1, sameBarcode, str } from './nutrients';
+import { panelFromUsda } from './panel';
 import type { DataQuality, FoodItem, Macros } from './types';
 
 export const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
@@ -97,6 +98,7 @@ export function mapUsdaFood(f: unknown): FoodItem | null {
     quality: qualityOf(dataType),
     per100g,
     serving,
+    panel: panelFromUsda(nutrients),
   };
 }
 
