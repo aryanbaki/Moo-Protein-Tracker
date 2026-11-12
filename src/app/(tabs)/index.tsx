@@ -164,6 +164,8 @@ export default function Home() {
     setSheetOpen(false);
     if (action === 'photo' || action === 'barcode') {
       router.push({ pathname: '/scan', params: { mode: action } });
+    } else if (action === 'search') {
+      router.push({ pathname: '/food-search', params: isToday ? {} : { day: selectedDay } });
     } else {
       router.push({ pathname: '/entry', params: isToday ? { mode: action } : { mode: action, day: selectedDay } });
     }

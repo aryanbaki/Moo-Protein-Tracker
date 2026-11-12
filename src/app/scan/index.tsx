@@ -4,9 +4,14 @@ import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { canPhotoScan, FREE_PHOTO_SCANS, presentPaywall, useBilling } from '../../features/billing';
+import type { FoodItem } from '../../features/foods';
+import { unitGramsOf } from '../../features/foods/amount';
+import { PROVIDER_NAME } from '../../features/foods/copy';
+import { GramsInput } from '../../features/foods/ui/GramsInput';
+import { NutritionFacts } from '../../features/foods/ui/NutritionFacts';
 import { useLog } from '../../features/log';
 import { analyzePhoto, ScanError } from '../../features/scan/analyze';
-import { BarcodeError, lookupBarcode } from '../../features/scan/barcode';
+import { BarcodeError, lookupBarcodeAnySource } from '../../features/scan/barcode';
 import { scansLeftLabel, scansLeftSpoken, type ProblemCode } from '../../features/scan/copy';
 import { entryFromItems, toEditable, type EditableItem } from '../../features/scan/totals';
 import { CameraStage } from '../../features/scan/ui/CameraStage';
@@ -17,7 +22,7 @@ import { AnalyzingView, FallbackCapture, LimitView, ProblemView } from '../../fe
 type Phase =
   | { k: 'capture' }
   | { k: 'analyzing'; kind: ScanMode; uri?: string }
-  | { k: 'result'; source: ScanMode; items: EditableItem[]; mock: boolean; uri?: string }
+  | { k: 'result'; source: ScanMode; items: EditableItem[]; mock: boolean; uri?: string; food?: FoodItem }
   | { k: 'problem'; code: ProblemCode; retry?: { kind: 'photo'; uri: string } | { kind: 'barcode'; code: string } }
   | { k: 'limit' };
 
@@ -73,9 +78,9 @@ export default function ScanScreen() {
     const id = ++job.current;
     setPhase({ k: 'analyzing', kind: 'barcode' });
     try {
-      const found = await lookupBarcode(code);
+      const found = await lookupBarcodeAnySource(code);
       if (id !== job.current) return;
-      if (found.status === 'found') setPhase({ k: 'result', source: 'barcode', items: toEditable(found.result.items), mock: false });
+      if (found.status === 'found') setPhase({ k: 'result', source: 'barcode', items: toEditable(found.result.items), mock: false, food: found.food });
       else setPhase({ k: 'problem', code: found.status });
     } catch (e) {
       if (id !== job.current) return;
@@ -128,7 +133,16 @@ export default function ScanScreen() {
           onSave={() => void save(phase.items, phase.source)}
           onRetake={backToCapture}
           onClose={close}
-        />
+        >
+          {phase.food && phase.items[0] && unitGramsOf(phase.food) ? (
+            <>
+              <GramsInput servingGrams={unitGramsOf(phase.food)!} servings={phase.items[0].servings} onServings={(servings) => setPhase({ ...phase, items: phase.items.map((i, n) => (n === 0 ? { ...i, servings } : i)) })} />
+              {phase.food.panel ? (
+                <NutritionFacts panel={phase.food.panel} grams={unitGramsOf(phase.food)! * phase.items[0].servings} source={(phase.food.reliability?.sources ?? [phase.food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} />
+              ) : null}
+            </>
+          ) : null}
+        </ResultView>
       );
 
     case 'limit':

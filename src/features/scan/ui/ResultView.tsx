@@ -1,9 +1,11 @@
 /** Editable result of a photo or barcode scan. */
+import type { ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppText, Button, Card, Screen } from '../../../components';
 import { colors, fonts, radius, spacing } from '../../../theme';
 import { formatServings, lowestConfidence, MAX_SERVINGS, MIN_SERVINGS, scaled, stepServings, totalsOf, type EditableItem } from '../totals';
+import { formatRange, LEVEL_LABEL, LEVEL_SPOKEN, needsCheck, overallLevel, totalProteinRange } from '../../foods/levels';
 import { CloseButton, Pill } from './parts';
 
 export interface ResultViewProps {
@@ -15,6 +17,10 @@ export interface ResultViewProps {
   onChange: (items: EditableItem[]) => void;
   onSave: () => void;
   onRetake: () => void;
+  /** Overrides the secondary button label (defaults to Retake / Rescan). */
+  retakeLabel?: string;
+  /** Extra content under the items (e.g. a nutrition-facts panel). */
+  children?: ReactNode;
   onClose: () => void;
 }
 
@@ -24,9 +30,11 @@ function fmt(n: number): string {
   return String(Math.round(n));
 }
 
-export function ResultView({ items, source, mock, photoUri, saving, onChange, onSave, onRetake, onClose }: ResultViewProps) {
+export function ResultView({ items, source, mock, photoUri, saving, onChange, onSave, onRetake, retakeLabel, onClose, children }: ResultViewProps) {
   const totals = totalsOf(items);
-  const unsure = items.length > 0 && lowestConfidence(items) < LOW_CONFIDENCE;
+  const level = overallLevel(items);
+  const unsure = (items.length > 0 && lowestConfidence(items) < LOW_CONFIDENCE) || needsCheck(level);
+  const range = totalProteinRange(items);
   const patch = (key: string, p: Partial<EditableItem>) => onChange(items.map((i) => (i.key === key ? { ...i, ...p } : i)));
 
   return (
@@ -35,7 +43,7 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
       footer={
         <>
           <Button title="Add" onPress={onSave} disabled={items.length === 0 || saving} accessibilityLabel={`Add to today: ${fmt(totals.proteinG)} grams of protein, ${fmt(totals.calories)} calories`} />
-          <Button title={source === 'photo' ? 'Retake' : 'Rescan'} variant="ghost" onPress={onRetake} style={{ minHeight: 44 }} />
+          <Button title={retakeLabel ?? (source === 'photo' ? 'Retake' : 'Rescan')} variant="ghost" onPress={onRetake} style={{ minHeight: 44 }} />
         </>
       }
     >
@@ -44,9 +52,9 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
         <View style={styles.tags}>
           {mock ? <Pill text="Demo" tone="warning" accessibilityLabel="Demo result: sample numbers, not your photo" testID="tag-demo" /> : null}
           <Pill
-            text="Estimate"
+            text={level ? LEVEL_LABEL[level] : 'Estimate'}
             tone={unsure ? 'warning' : 'soft'}
-            accessibilityLabel={unsure ? 'Rough estimate. Check the items and portions before you add it.' : 'Estimate. Every value can be edited.'}
+            accessibilityLabel={level ? `${LEVEL_SPOKEN[level]} Every value can be edited.` : unsure ? 'Rough estimate. Check the items and portions before you add it.' : 'Estimate. Every value can be edited.'}
             testID="tag-estimate"
           />
         </View>
@@ -54,9 +62,12 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
 
       <Card style={styles.totals}>
         <View style={styles.heroLine}>
-          <View accessible accessibilityLabel={`${fmt(totals.proteinG)} grams of protein`} style={styles.heroRow}>
-            <Text style={styles.heroNumber}>{fmt(totals.proteinG)}</Text>
-            <AppText variant="label" color={colors.primaryDark} style={{ marginBottom: 10 }}>g protein</AppText>
+          <View>
+            <View accessible accessibilityLabel={`${fmt(totals.proteinG)} grams of protein`} style={styles.heroRow}>
+              <Text style={styles.heroNumber}>{fmt(totals.proteinG)}</Text>
+              <AppText variant="label" color={colors.primaryDark} style={{ marginBottom: 10 }}>g protein</AppText>
+            </View>
+            {range ? <AppText variant="small" accessibilityLabel={`Likely between ${Math.round(range.lowG)} and ${Math.round(range.highG)} grams`} testID="protein-range">{formatRange(range)}</AppText> : null}
           </View>
           {photoUri ? <Image source={{ uri: photoUri }} style={styles.thumb} accessibilityIgnoresInvertColors accessibilityLabel="Your photo" /> : null}
         </View>
@@ -106,7 +117,13 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
             </View>
             <View style={styles.itemBottom}>
               <View style={{ flex: 1 }}>
-                <AppText variant="label" color={colors.primaryDark}>{fmt(s.proteinG)} g protein</AppText>
+                <AppText variant="label" color={colors.primaryDark}>
+                  {fmt(s.proteinG)} g protein
+                  {item.proteinRange && item.proteinRange.highG > item.proteinRange.lowG ? (
+                    <AppText variant="small">{`  ${formatRange({ lowG: item.proteinRange.lowG * item.servings, highG: item.proteinRange.highG * item.servings })}`}</AppText>
+                  ) : null}
+                </AppText>
+                {item.reliability && items.length > 1 ? <AppText variant="small" accessibilityLabel={LEVEL_SPOKEN[item.reliability]}>{LEVEL_LABEL[item.reliability]}</AppText> : null}
                 <AppText variant="small">{fmt(s.calories)} kcal · {fmt(s.carbsG)} g carbs · {fmt(s.fatG)} g fat</AppText>
               </View>
               <View style={styles.stepper} accessibilityRole="adjustable" accessibilityLabel={`Servings of ${item.name}`} accessibilityValue={{ text: formatServings(item.servings) }}>
@@ -119,7 +136,8 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
         );
       })}
 
-      {source === 'barcode' ? <AppText variant="small" center>Open Food Facts</AppText> : null}
+      {children}
+      {source === 'barcode' ? <AppText variant="small" center>Open Food Facts · USDA</AppText> : null}
     </Screen>
   );
 }

@@ -11,6 +11,8 @@ What lives in this folder:
 | `migrations/0001_init.sql` | Tables, row-level security, triggers |
 | `functions/delete-account` | Deletes the caller's data and login (required by the App Store) |
 | `functions/analyze-food` | Photo → nutrition estimate through Claude (see its own README) |
+| `functions/food-search` | Food text/barcode search through USDA FoodData Central (keeps the free USDA key server-side) |
+| `functions/food-verify` | Optional third opinion on barcodes from FatSecret (verification only; off until keys are set) |
 
 ## 1. Create the Supabase project
 
@@ -70,7 +72,33 @@ needs an Apple service key that does not exist yet.
 supabase secrets set ANTHROPIC_API_KEY=<your Anthropic key>
 supabase functions deploy delete-account
 supabase functions deploy analyze-food
+# Free key from https://fdc.nal.usda.gov/api-key-signup (1,000 requests/hour)
+supabase secrets set USDA_API_KEY=<your api.data.gov key>
+supabase functions deploy food-search
 ```
+
+`food-search` needs no account (it works with the anon key, so local-only
+users can search foods); without it the app falls back to USDA's public
+`DEMO_KEY`, which is rate-limited to a few dozen calls an hour and is for
+development only. Open Food Facts needs no key at all.
+
+Optional, for a third independent check on barcodes (FatSecret "Premier Free",
+no cost for start-ups, non-profits and students after FatSecret verifies you):
+
+```sh
+# Apply at https://platform.fatsecret.com (Premier Free), then:
+supabase secrets set FATSECRET_CLIENT_ID=<id> FATSECRET_CLIENT_SECRET=<secret>
+supabase functions deploy food-verify
+```
+
+FatSecret only accepts calls from IP addresses on the key's allowlist, and
+Supabase Edge Functions have no fixed outgoing IP, so the allowlist has to be
+opened wide (FatSecret staff have suggested 0.0.0.0/0 in their forum; confirm
+with them) or the call routed through a fixed-IP proxy. FatSecret requires its
+attribution badge in the app and forbids storing its nutrient values beyond 24
+hours, which is why the app only uses it to confirm numbers from USDA or Open
+Food Facts and never logs FatSecret's own values. Until the secrets are set the
+function answers 501 and the app silently skips it.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided
 to functions automatically. The Anthropic key lives only in Supabase secrets; it

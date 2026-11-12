@@ -12,9 +12,48 @@ export interface CleanItem {
   fatG: number;
   /** 0..1 */
   confidence: number;
+  /** Extra clues for the protein model (src/features/foods/estimate.ts). Absent from older analysers. */
+  hints?: PhotoHints;
+}
+
+/** What kind of thing the photo shows; decides how protein is worked out. */
+export type FoodKind = 'packaged' | 'whole_food' | 'mixed_dish' | 'drink';
+/** Raw or cooked weight matters: cooked meat has about a third more protein per gram than raw. */
+export type CookState = 'raw' | 'cooked' | 'not_applicable' | 'unknown';
+
+/** Numbers read off a visible nutrition-facts label, per one label serving. */
+export interface LabelReading {
+  servingText: string;
+  servingSizeG: number | null;
+  proteinG: number | null;
+  calories: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+}
+
+export interface PhotoHints {
+  kind: FoodKind;
+  /** Best guess, and a plausible low/high, of the edible weight in the photo, in grams (ml for drinks). */
+  grams: number | null;
+  gramsLow: number | null;
+  gramsHigh: number | null;
+  cookState: CookState;
+  /** Printed on the package, if visible; '' otherwise. */
+  brand: string;
+  product: string;
+  /** Barcode digits readable in the photo. */
+  barcode: string | null;
+  /** Short generic name for a food-composition lookup, e.g. "chicken breast roasted". */
+  dbQuery: string;
+  label: LabelReading | null;
+  /** Label servings shown or eaten (e.g. 2 bars, 1.5 scoops). */
+  servings: number | null;
 }
 
 export const MAX_ITEMS = 12;
+const MAX_PORTION_GRAMS = 3000;
+const KINDS: FoodKind[] = ['packaged', 'whole_food', 'mixed_dish', 'drink'];
+const COOK_STATES: CookState[] = ['raw', 'cooked', 'not_applicable', 'unknown'];
 const MAX_GRAMS = 500;
 const MAX_CALORIES = 5000;
 
@@ -42,6 +81,59 @@ function pick(o: Record<string, unknown>, snake: string, camel: string): unknown
   return o[snake] !== undefined ? o[snake] : o[camel];
 }
 
+/** Positive finite number within [min, max], else null (null and absent stay null). */
+function optNumber(v: unknown, min: number, max: number): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return round1(n);
+}
+
+function sanitizeLabel(raw: unknown): LabelReading | null {
+  if (!isRecord(raw)) return null;
+  const label: LabelReading = {
+    servingText: cleanText(pick(raw, 'serving_text', 'servingText'), 60),
+    servingSizeG: optNumber(pick(raw, 'serving_size_g', 'servingSizeG'), 0.1, MAX_PORTION_GRAMS),
+    proteinG: optNumber(pick(raw, 'protein_g', 'proteinG'), 0, MAX_GRAMS),
+    calories: optNumber(raw.calories, 0, MAX_CALORIES),
+    carbsG: optNumber(pick(raw, 'carbs_g', 'carbsG'), 0, MAX_GRAMS),
+    fatG: optNumber(pick(raw, 'fat_g', 'fatG'), 0, MAX_GRAMS),
+  };
+  // A label reading is only useful if it has protein or energy.
+  return label.proteinG === null && label.calories === null ? null : label;
+}
+
+/** Hints are optional: returns undefined unless the item carries a `kind`. */
+export function sanitizeHints(r: Record<string, unknown>): PhotoHints | undefined {
+  const src = isRecord(r.hints) ? r.hints : r;
+  const kind = src.kind;
+  if (typeof kind !== 'string' || !KINDS.includes(kind as FoodKind)) return undefined;
+  const cook = pick(src, 'cook_state', 'cookState');
+  let grams = optNumber(src.grams, 0.5, MAX_PORTION_GRAMS);
+  let low = optNumber(pick(src, 'grams_low', 'gramsLow'), 0.5, MAX_PORTION_GRAMS);
+  let high = optNumber(pick(src, 'grams_high', 'gramsHigh'), 0.5, MAX_PORTION_GRAMS);
+  if (low !== null && high !== null && low > high) [low, high] = [high, low];
+  if (grams === null && low !== null && high !== null) grams = round1((low + high) / 2);
+  if (grams !== null) {
+    if (low !== null && low > grams) low = grams;
+    if (high !== null && high < grams) high = grams;
+  }
+  const digits = cleanText(src.barcode, 20).replace(/[\s-]/g, '');
+  return {
+    kind: kind as FoodKind,
+    grams,
+    gramsLow: low,
+    gramsHigh: high,
+    cookState: typeof cook === 'string' && COOK_STATES.includes(cook as CookState) ? (cook as CookState) : 'unknown',
+    brand: cleanText(src.brand, 60),
+    product: cleanText(src.product, 80),
+    barcode: /^\d{8}$|^\d{12,14}$/.test(digits) ? digits : null,
+    dbQuery: cleanText(pick(src, 'db_query', 'dbQuery'), 80),
+    label: sanitizeLabel(src.label),
+    servings: optNumber(src.servings, 0.1, 20),
+  };
+}
+
 /** Accepts snake_case (model output) or camelCase (function response) items. */
 export function sanitizeItems(raw: unknown): CleanItem[] {
   if (!Array.isArray(raw)) return [];
@@ -58,6 +150,7 @@ export function sanitizeItems(raw: unknown): CleanItem[] {
       carbsG: round1(clampNumber(pick(r, 'carbs_g', 'carbsG'), 0, MAX_GRAMS)),
       fatG: round1(clampNumber(pick(r, 'fat_g', 'fatG'), 0, MAX_GRAMS)),
       confidence: Math.round(clampNumber(r.confidence, 0, 1, 0.5) * 100) / 100,
+      ...((h) => (h ? { hints: h } : {}))(sanitizeHints(r)),
     });
     if (out.length >= MAX_ITEMS) break;
   }

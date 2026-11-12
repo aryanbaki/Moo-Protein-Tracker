@@ -5,7 +5,7 @@ import { Sheet } from '../../components/Sheet';
 import { colors, radius, shadow, spacing } from '../../theme';
 import { Icon, type IconName } from './icons';
 
-export type AddAction = 'photo' | 'barcode' | 'manual' | 'quick';
+export type AddAction = 'photo' | 'barcode' | 'search' | 'manual' | 'quick';
 
 export interface AddSheetProps {
   visible: boolean;
@@ -19,13 +19,14 @@ export interface AddSheetProps {
 const ACTIONS: { key: AddAction; icon: IconName; title: string; hint: string }[] = [
   { key: 'photo', icon: 'camera', title: 'Scan', hint: 'Scan food with a photo for a rough estimate' },
   { key: 'barcode', icon: 'barcode', title: 'Barcode', hint: 'Scan the barcode on packaged food' },
+  { key: 'search', icon: 'search', title: 'Search', hint: 'Search the food databases by name' },
   { key: 'manual', icon: 'pencil', title: 'Type', hint: 'Type in the name, protein, calories, carbs and fat' },
   { key: 'quick', icon: 'bolt', title: 'Quick add', hint: 'Just the protein grams' },
 ];
 
-/** The "+" menu: four ways to log. */
+/** The "+" menu: the ways to log. */
 export function AddSheet({ visible, onClose, onPick, dayLabel }: AddSheetProps) {
-  const actions = dayLabel ? ACTIONS.filter((a) => a.key === 'manual' || a.key === 'quick') : ACTIONS;
+  const actions = dayLabel ? ACTIONS.filter((a) => a.key === 'search' || a.key === 'manual' || a.key === 'quick') : ACTIONS;
   return (
     <Sheet visible={visible} onClose={onClose} title={dayLabel ?? 'Add'} testID="add-sheet">
       <View style={styles.list}>
