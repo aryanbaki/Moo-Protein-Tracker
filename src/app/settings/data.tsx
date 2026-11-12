@@ -2,11 +2,11 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Share } from 'react-native';
 
-import { AppText, Button } from '../../components';
+import { AppText } from '../../components';
 import { useLog } from '../../features/log';
 import { syncReminders } from '../../features/reminders';
 import { buildExport, exportFileName } from '../../features/settings/export';
-import { ConfirmModal, Group, Note, Row, SettingsScreen } from '../../features/settings/ui';
+import { ConfirmModal, Group, Row, SettingsScreen } from '../../features/settings/ui';
 import { Cow } from '../../mascot';
 import { useProfile } from '../../state/profile';
 
@@ -39,13 +39,13 @@ export default function DataSettings() {
       const json = JSON.stringify(buildExport({ profile: { answers, goals, units, creatine, mealReminders }, entries, creatineLogs, weightLogs }, now), null, 2);
       if (Platform.OS === 'web') {
         downloadOnWeb(exportFileName(now), json);
-        setMessage(`Downloaded ${exportFileName(now)}.`);
+        setMessage('Exported');
       } else {
         const res = await Share.share({ title: exportFileName(now), message: json });
-        if (res.action === Share.sharedAction) setMessage('Export shared.');
+        if (res.action === Share.sharedAction) setMessage('Exported');
       }
     } catch {
-      setMessage("Couldn't export right now. Try again.");
+      setMessage("Couldn't export. Try again.");
     }
   };
 
@@ -60,7 +60,7 @@ export default function DataSettings() {
       // Onboarding is no longer complete: leave Settings so setup starts again.
       router.replace('/');
     } catch {
-      setError("Couldn't erase everything. Try again.");
+      setError("Couldn't erase. Try again.");
     } finally {
       setBusy(false);
     }
@@ -68,28 +68,26 @@ export default function DataSettings() {
 
   return (
     <SettingsScreen title="Your data">
-      <Note>
-        <AppText variant="caption">
-          {`On this device: ${entryCount} food ${entryCount === 1 ? 'entry' : 'entries'} and ${weightCount} weigh-${weightCount === 1 ? 'in' : 'ins'}, plus your goals and settings.`}
-        </AppText>
-      </Note>
+      <Group>
+        <Row label="Food entries" value={String(entryCount)} />
+        <Row label="Weigh-ins" value={String(weightCount)} />
+      </Group>
 
-      <Group title="Export" footer="A JSON file with your goals, settings, food log, creatine check-offs and weigh-ins.">
-        <Row emoji="📤" label="Export my data" onPress={() => void exportData()} />
+      <Group>
+        <Row emoji="📤" label="Export" accessibilityLabel="Export my data" onPress={() => void exportData()} />
       </Group>
       {message ? <AppText variant="caption" center accessibilityLiveRegion="polite">{message}</AppText> : null}
 
-      <Group title="Danger zone" footer="Removes your log, goals and settings from this device and restarts setup. It does not delete an account; do that in Settings → Account.">
-        <Row emoji="🧹" label="Erase all data on this device" danger onPress={() => { setError(null); setConfirming(true); }} />
+      <Group>
+        <Row emoji="🧹" label="Erase this device" accessibilityLabel="Erase all data on this device" danger onPress={() => { setError(null); setConfirming(true); }} />
       </Group>
-      <Button title="Export first" variant="ghost" onPress={() => void exportData()} />
 
       <ConfirmModal
         visible={confirming}
         top={<Cow size={96} pose="shocked" accessibilityLabel="Moo the cow, shocked" />}
         title="Erase everything?"
-        body="Your food log, weigh-ins, goals and settings on this device will be gone. The cow will forget you. This can't be undone."
-        confirmLabel="Erase everything"
+        body="Can't be undone."
+        confirmLabel="Erase"
         busy={busy}
         error={error}
         onConfirm={() => void erase()}

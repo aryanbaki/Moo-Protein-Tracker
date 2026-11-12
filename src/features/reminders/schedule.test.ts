@@ -42,6 +42,16 @@ describe('buildSchedule', () => {
   it('adds two meal nudges at 13:00 and 19:30', () => {
     const list = buildSchedule({ creatine: { ...on, enabled: false }, mealReminders: true });
     expect(list.map((r) => [r.hour, r.minute])).toEqual([[13, 0], [19, 30]]);
+    expect(list.map((r) => r.title)).toEqual(['Protein check', 'Protein check']);
+  });
+  it('keeps every notification to four words or fewer, with no exclamation marks', () => {
+    for (const r of buildSchedule({ creatine: on, mealReminders: true })) {
+      for (const text of [r.title, r.body]) {
+        expect(text.trim().split(/\s+/).length).toBeLessThanOrEqual(4);
+        expect(text).not.toMatch(/!/);
+      }
+    }
+    expect(buildSchedule({ creatine: on, mealReminders: false })[0]).toMatchObject({ title: 'Creatine time', body: '5 g' });
   });
   it('uses unique prefixed ids', () => {
     const list = buildSchedule({ creatine: on, mealReminders: true });

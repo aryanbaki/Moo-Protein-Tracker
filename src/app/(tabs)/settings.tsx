@@ -24,28 +24,26 @@ export default function SettingsScreen() {
     <Screen scroll edges={['top']}>
       <AppText variant="title" accessibilityRole="header">Settings</AppText>
 
-      <Group title="Your plan">
-        <Row emoji="🎯" label="Goals" value={goals ? `${goals.proteinG} g protein` : 'Not set'} onPress={open('goals')} />
+      <Group>
+        <Row emoji="🎯" label="Goals" value={goals ? `${goals.proteinG} g` : '—'} onPress={open('goals')} />
         <Row emoji="📏" label="Body details" onPress={open('body')} />
         <Row emoji="⚖️" label="Units" value={units === 'metric' ? 'Metric' : 'Imperial'} onPress={open('units')} />
       </Group>
 
-      <Group title="Habits">
-        <Row emoji="🔔" label="Reminders" value={mealReminders ? 'Meal nudges on' : 'Meal nudges off'} onPress={open('reminders')} />
+      <Group>
+        <Row emoji="🔔" label="Reminders" value={mealReminders ? 'On' : 'Off'} onPress={open('reminders')} />
         <Row emoji="🥄" label="Creatine" value={creatineValue} onPress={open('creatine')} />
       </Group>
 
-      <Group title="Account">
-        <Row emoji="👤" label="Account" value={user ? (user.email ?? 'Signed in') : 'Not signed in'} onPress={open('account')} />
+      <Group>
+        <Row emoji="👤" label="Account" value={user ? (user.email ?? 'Signed in') : 'Signed out'} onPress={open('account')} />
         <Row emoji="👑" label="Subscription" value={isPremium ? 'Premium' : 'Free'} onPress={open('subscription')} />
       </Group>
 
-      <Group title="More">
-        <Row emoji="📦" label="Your data" value="Export or erase" onPress={open('data')} />
+      <Group>
+        <Row emoji="📦" label="Your data" onPress={open('data')} />
         <Row emoji="🐮" label="About Moo" onPress={open('about')} />
       </Group>
-
-      <AppText variant="small" center>Moo gives estimates, not medical advice.</AppText>
     </Screen>
   );
 }

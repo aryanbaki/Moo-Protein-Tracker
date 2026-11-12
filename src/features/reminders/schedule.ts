@@ -69,8 +69,8 @@ export function buildSchedule({ creatine, mealReminders }: ReminderInput): Remin
   if (creatineTime) {
     out.push({
       id: `${REMINDER_PREFIX}creatine`,
-      title: "Moo! Creatine o'clock",
-      body: `${trimDose(creatine.doseG)} g and you're done.`,
+      title: 'Creatine time',
+      body: `${trimDose(creatine.doseG)} g`,
       ...creatineTime,
     });
   }
@@ -78,8 +78,8 @@ export function buildSchedule({ creatine, mealReminders }: ReminderInput): Remin
     MEAL_REMINDER_TIMES.forEach((t, i) => {
       out.push({
         id: `${REMINDER_PREFIX}meal.${i}`,
-        title: i === 0 ? 'Had protein yet?' : 'Dinner check, moo',
-        body: i === 0 ? 'The cow is looking a bit empty.' : 'Had protein yet? The cow is looking a bit empty.',
+        title: 'Protein check',
+        body: i === 0 ? 'Lunch' : 'Dinner',
         ...t,
       });
     });

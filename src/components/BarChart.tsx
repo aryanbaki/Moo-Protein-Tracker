@@ -30,7 +30,7 @@ export interface BarChartProps {
   height?: number;
   /** Text equivalent of the whole chart for screen readers. */
   summary: string;
-  /** Shown in the read-out line when nothing is selected. */
+  /** Replaces the read-out line when nothing is selected (default: the highlighted bar). */
   hint?: string;
   /** Turns off tapping/hovering (used behind the premium lock). */
   inert?: boolean;
@@ -77,12 +77,9 @@ export function BarChart({ data, goal, unit = 'g', height = 210, summary, hint, 
     return { yMax, plotW, plotH, slot, barW, y, base: PAD_TOP + plotH };
   }, [data, goal, width, height]);
 
-  const sel = data.find((d) => d.key === selected) ?? null;
-  const readout = sel
-    ? sel.empty
-      ? `${sel.name} · nothing logged`
-      : `${sel.name} · ${fmt(sel.value)} ${unit}${goal > 0 ? (sel.value >= goal ? ' · goal met' : ` · ${fmt(goal - sel.value)} ${unit} short`) : ''}`
-    : (hint ?? 'Tap a bar for details');
+  // Numbers only: the selected bar, else today's (the highlighted one).
+  const sel = data.find((d) => d.key === selected) ?? (hint === undefined ? data.find((d) => d.highlight) : undefined) ?? null;
+  const readout = sel ? `${sel.name} · ${sel.empty ? '—' : `${fmt(sel.value)} ${unit}`}` : (hint ?? ' ');
 
   const ticks = [0, geo.yMax / 2, geo.yMax];
   const goalY = geo.y(goal);
@@ -173,11 +170,11 @@ export function BarChart({ data, goal, unit = 'g', height = 210, summary, hint, 
           ) : null}
           <View style={styles.legendKey}>
             <View style={[styles.swatch, { backgroundColor: colors.good }]} />
-            <AppText variant="small">Goal met</AppText>
+            <AppText variant="small">Met</AppText>
           </View>
           <View style={styles.legendKey}>
             <View style={[styles.swatch, { backgroundColor: colors.fill }]} />
-            <AppText variant="small">Under goal</AppText>
+            <AppText variant="small">Under</AppText>
           </View>
         </View>
       )}

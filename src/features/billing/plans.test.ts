@@ -9,6 +9,7 @@ import {
   sortPlans,
   toPlan,
   trialDaysOf,
+  trialLabel,
   type StorePackageLike,
 } from './plans';
 
@@ -73,14 +74,18 @@ describe('sample plans', () => {
 });
 
 describe('renewalCopy', () => {
-  it('always says how to cancel and that it renews', () => {
+  it('always says that it renews and can be cancelled', () => {
     for (const p of [null, ...SAMPLE_PLANS, toPlan(yearly), toPlan(monthly)]) {
-      expect(renewalCopy(p)).toMatch(/Cancel anytime in Settings\. Renews automatically\.$/);
+      expect(renewalCopy(p)).toMatch(/Renews automatically\. Cancel anytime\.$/);
     }
   });
-  it('states the real price after a trial', () => {
-    expect(renewalCopy(toPlan(yearly))).toBe('Free for 3 days, then $29.99 per year. Cancel anytime in Settings. Renews automatically.');
-    expect(renewalCopy(toPlan(monthly))).toBe('$4.99 per month. Cancel anytime in Settings. Renews automatically.');
+  it('states the real price after a trial, and nothing extra without one', () => {
+    expect(renewalCopy(toPlan(yearly))).toBe('3 days free, then $29.99 per year. Renews automatically. Cancel anytime.');
+    expect(renewalCopy(toPlan(monthly))).toBe('Renews automatically. Cancel anytime.');
+    expect(renewalCopy(null)).toBe('Renews automatically. Cancel anytime.');
+  });
+  it('labels the trial in three words or fewer', () => {
+    expect(trialLabel(3)).toBe('3-day trial');
   });
   it('does not invent a price for sample plans', () => {
     expect(renewalCopy(SAMPLE_PLANS[0])).not.toMatch(/[$€£]\d/);

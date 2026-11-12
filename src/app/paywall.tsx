@@ -7,6 +7,9 @@
  *
  * Honesty: prices and trials come from the store only. No countdowns, no
  * invented discounts, no made-up reviews.
+ *
+ * Copy: one headline, three benefit labels, the plans, one button and one legal
+ * line. Keep it that short.
  */
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -16,7 +19,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Button, Screen } from '../components';
 import {
-  FREE_PHOTO_SCANS,
   PRICE_PLACEHOLDER,
   PRICE_PLACEHOLDER_NOTE,
   PRIVACY_URL,
@@ -35,18 +37,14 @@ import { colors, radius, spacing } from '../theme';
 
 const REASONS: PaywallReason[] = ['onboarding', 'scan_limit', 'history', 'weekly'];
 
-const HEADLINES: Record<PaywallReason | 'default', { title: string; subtitle: string }> = {
-  onboarding: { title: 'Give your cow the royal treatment', subtitle: 'Moo is free to use. Premium adds the extras below.' },
-  scan_limit: { title: "You've used your free photo scans", subtitle: `The free plan includes ${FREE_PHOTO_SCANS} photo scans. Typing it in and barcodes stay free.` },
-  history: { title: 'See the whole pasture', subtitle: 'Your full history lives in Premium.' },
-  weekly: { title: 'Fill the cow for the week', subtitle: 'The weekly cow is part of Premium.' },
-  default: { title: 'Moo Premium', subtitle: 'Moo is free to use. Premium adds the extras below.' },
-};
+const HEADLINE = 'Moo Premium';
+/** The only reason that gets its own words: why the scanner sent you here. */
+const REASON_TAG: Partial<Record<PaywallReason, string>> = { scan_limit: 'Out of free scans' };
 
-const BENEFITS: { emoji: string; title: string; body: string }[] = [
-  { emoji: '📸', title: 'Unlimited photo scans', body: 'Snap a meal, get an estimate. No cap.' },
-  { emoji: '🗓️', title: 'Weekly cow and full history', body: 'The week view, and every past day.' },
-  { emoji: '🐄', title: 'Support an indie cow', body: "Keeps a tiny team's barn lights on." },
+const BENEFITS: { emoji: string; title: string }[] = [
+  { emoji: '📸', title: 'Unlimited scans' },
+  { emoji: '🗓️', title: 'Week view' },
+  { emoji: '📈', title: 'Full history' },
 ];
 
 export default function PaywallScreen() {
@@ -62,8 +60,6 @@ export default function PaywallScreen() {
   const [busy, setBusy] = useState<null | 'purchase' | 'restore'>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  // Premium before this screen opened (e.g. reopened from Settings) vs. unlocked just now.
-  const [wasPremium] = useState(isPremium);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   // On short screens the legal links move into the scroll area so the plans stay visible.
@@ -108,7 +104,7 @@ export default function PaywallScreen() {
     const res = await useBilling.getState().restore();
     setBusy(null);
     if (!res.ok) setError(res.error);
-    else if (!res.restored) setNotice(mode === 'preview' ? 'Nothing to restore in a preview build.' : 'No active subscription found for this Apple ID.');
+    else if (!res.restored) setNotice('Nothing to restore.');
   };
 
   // Outside the scroll view so it can never scroll out of reach.
@@ -120,7 +116,7 @@ export default function PaywallScreen() {
 
   const links = (
     <View style={styles.links}>
-      <TextLink title={busy === 'restore' ? 'Restoring…' : 'Restore purchases'} onPress={() => void restore()} disabled={!!busy} />
+      <TextLink title={busy === 'restore' ? 'Restoring…' : 'Restore'} accessibilityLabel="Restore purchases" onPress={() => void restore()} disabled={!!busy} />
       <TextLink title="Terms" onPress={() => void Linking.openURL(TERMS_URL).catch(() => {})} />
       <TextLink title="Privacy" onPress={() => void Linking.openURL(PRIVACY_URL).catch(() => {})} />
     </View>
@@ -129,15 +125,15 @@ export default function PaywallScreen() {
   if (isPremium) {
     return (
       <View style={styles.root}>
-        <Screen scroll footer={<Button title="Continue" onPress={leave} />}>
+        <Screen scroll footer={<Button title="Done" onPress={leave} />}>
           <View style={[styles.hero, styles.heroDone]}>
-            <Cow size={200} pose="crown" accessibilityLabel="Moo the cow wearing a crown" />
-            <AppText variant="heading" center accessibilityRole="header">{wasPremium ? "You're on Moo Premium" : 'Welcome to Moo Premium'}</AppText>
-            <AppText variant="body" center color={colors.textSecondary}>
-              Unlimited photo scans, the weekly cow and your full history are unlocked. Thank you for backing the herd.
-            </AppText>
-            {mode === 'preview' ? <AppText variant="caption" center>Preview build: nothing was charged.</AppText> : null}
-            <AppText variant="small" center>Manage or cancel anytime in Settings &gt; Apple ID &gt; Subscriptions.</AppText>
+            <Cow size={220} pose="crown" accessibilityLabel="Moo the cow wearing a crown" />
+            <AppText variant="title" center accessibilityRole="header">Premium on</AppText>
+            {mode === 'preview' ? (
+              <View style={styles.previewPill}>
+                <AppText variant="small" color={colors.primaryDark}>Preview build: no charge</AppText>
+              </View>
+            ) : null}
           </View>
         </Screen>
         {closeButton}
@@ -145,8 +141,8 @@ export default function PaywallScreen() {
     );
   }
 
-  const head = HEADLINES[reason ?? 'default'];
-  const cta = selected?.trialDays ? 'Start free trial' : 'Unlock Premium';
+  const reasonTag = reason ? REASON_TAG[reason] : undefined;
+  const cta = selected?.trialDays ? 'Start trial' : 'Subscribe';
   const canBuy = !!selected && mode !== 'unavailable' && !busy;
 
   return (
@@ -163,13 +159,13 @@ export default function PaywallScreen() {
               </View>
             ) : null}
             <Button
-              title={busy === 'purchase' ? 'One moment…' : cta}
+              title={busy === 'purchase' ? 'Loading…' : cta}
               onPress={() => void buy()}
               disabled={!canBuy}
               accessibilityLabel={mode === 'preview' ? `${cta}. Preview build: no charge` : cta}
             />
             {mode === 'unavailable' ? (
-              <AppText variant="caption" center>Purchases aren&apos;t set up in this build yet, so nothing can be bought here. Everything else in Moo works.</AppText>
+              <AppText variant="small" center>Purchases are off in this build.</AppText>
             ) : (
               <AppText variant="small" center>{renewalCopy(selected)}</AppText>
             )}
@@ -178,21 +174,22 @@ export default function PaywallScreen() {
         }
       >
         <View style={styles.hero}>
-          <Cow size={compact ? 96 : 132} pose="crown" accessibilityLabel="Moo the cow wearing a crown" />
-          <AppText variant="heading" center accessibilityRole="header" style={styles.title}>{head.title}</AppText>
-          <AppText variant="caption" center>{head.subtitle}</AppText>
+          <Cow size={compact ? 110 : 168} pose="crown" accessibilityLabel="Moo the cow wearing a crown" />
+          <AppText variant="title" center accessibilityRole="header">{HEADLINE}</AppText>
+          {reasonTag ? (
+            <View style={styles.reasonTag}>
+              <AppText variant="small" color={colors.text}>{reasonTag}</AppText>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.benefits}>
           {BENEFITS.map((b) => (
-            <View key={b.title} style={styles.benefit} accessible accessibilityLabel={`${b.title}. ${b.body}`}>
+            <View key={b.title} style={styles.benefit} accessible accessibilityLabel={b.title}>
               <View style={styles.benefitIcon}>
                 <AppText variant="body">{b.emoji}</AppText>
               </View>
-              <View style={styles.benefitText}>
-                <AppText variant="label">{b.title}</AppText>
-                <AppText variant="caption">{b.body}</AppText>
-              </View>
+              <AppText variant="label" style={styles.benefitText}>{b.title}</AppText>
             </View>
           ))}
         </View>
@@ -201,8 +198,8 @@ export default function PaywallScreen() {
           <ActivityIndicator color={colors.primary} accessibilityLabel="Loading plans" />
         ) : mode === 'live' && offerings.length === 0 ? (
           <View style={styles.plans}>
-            <AppText variant="caption" center>Couldn&apos;t load plans from the App Store.</AppText>
-            <Button title="Try again" variant="secondary" onPress={() => void useBilling.getState().loadOfferings()} />
+            <AppText variant="caption" center>Couldn&apos;t load plans.</AppText>
+            <Button title="Retry" variant="secondary" onPress={() => void useBilling.getState().loadOfferings()} />
           </View>
         ) : (
           <View style={styles.plans} accessibilityRole="radiogroup" accessibilityLabel="Choose a plan">
@@ -244,9 +241,9 @@ function PlanCard({ plan, selected, onPress }: { plan: Plan; selected: boolean; 
   );
 }
 
-function TextLink({ title, onPress, disabled }: { title: string; onPress: () => void; disabled?: boolean }) {
+function TextLink({ title, onPress, disabled, accessibilityLabel }: { title: string; onPress: () => void; disabled?: boolean; accessibilityLabel?: string }) {
   return (
-    <Pressable accessibilityRole="link" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} hitSlop={4} style={styles.link}>
+    <Pressable accessibilityRole="link" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} hitSlop={4} style={styles.link}>
       <AppText variant="caption" style={styles.linkText}>{title}</AppText>
     </Pressable>
   );
@@ -258,7 +255,7 @@ const styles = StyleSheet.create({
   close: { position: 'absolute', right: spacing.md, width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt },
   closeGlyph: { lineHeight: 30 },
   hero: { alignItems: 'center', gap: spacing.sm },
-  title: { fontSize: 26, lineHeight: 32 },
+  reasonTag: { backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   benefits: { gap: 12 },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   benefitIcon: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },

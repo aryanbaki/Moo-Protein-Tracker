@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { AppText, OptionCard } from '../../components';
+import { OptionCard } from '../../components';
 import { SettingsScreen } from '../../features/settings/ui';
 import { useProfile } from '../../state/profile';
 import { spacing } from '../../theme';
@@ -11,10 +11,9 @@ export default function UnitsSettings() {
   return (
     <SettingsScreen title="Units">
       <View accessibilityRole="radiogroup" style={{ gap: spacing.sm }}>
-        <OptionCard title="Imperial" subtitle="Pounds, feet and inches" emoji="🇺🇸" selected={units === 'imperial'} onPress={() => setUnits('imperial')} />
-        <OptionCard title="Metric" subtitle="Kilograms and centimetres" emoji="🌍" selected={units === 'metric'} onPress={() => setUnits('metric')} />
+        <OptionCard title="Imperial" subtitle="lb · ft" emoji="🇺🇸" selected={units === 'imperial'} onPress={() => setUnits('imperial')} />
+        <OptionCard title="Metric" subtitle="kg · cm" emoji="🌍" selected={units === 'metric'} onPress={() => setUnits('metric')} />
       </View>
-      <AppText variant="caption">Food is always in grams and calories. This only changes how your weight and height are shown.</AppText>
     </SettingsScreen>
   );
 }

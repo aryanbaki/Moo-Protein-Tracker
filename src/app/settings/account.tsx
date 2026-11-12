@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AppText, Button } from '../../components';
 import { useAuth } from '../../features/auth';
 import { syncReminders } from '../../features/reminders';
-import { ConfirmModal, Group, Note, Row, SettingsScreen } from '../../features/settings/ui';
+import { ConfirmModal, Group, Row, SettingsScreen } from '../../features/settings/ui';
 import { Cow } from '../../mascot';
 
 export default function AccountSettings() {
@@ -31,7 +31,7 @@ export default function AccountSettings() {
     // Older builds of the auth store may not have deleteAccount; check before calling.
     const fn = (useAuth.getState() as { deleteAccount?: () => Promise<{ ok: boolean; error?: string } | void> }).deleteAccount;
     if (!fn) {
-      setError("Account deletion isn't available in this build.");
+      setError('Deletion is off in this build.');
       return;
     }
     setBusy(true);
@@ -39,7 +39,7 @@ export default function AccountSettings() {
     try {
       const res = await fn();
       if (res && !res.ok) {
-        setError(res.error ?? "Couldn't delete the account. Try again.");
+        setError(res.error ?? "Couldn't delete. Try again.");
         return;
       }
       setConfirming(false);
@@ -47,7 +47,7 @@ export default function AccountSettings() {
       // The profile was wiped: leave Settings so setup starts again.
       router.replace('/');
     } catch {
-      setError("Couldn't delete the account. Check your connection and try again.");
+      setError("Couldn't delete. Try again.");
     } finally {
       setBusy(false);
     }
@@ -57,28 +57,22 @@ export default function AccountSettings() {
     <SettingsScreen title="Account">
       {user ? (
         <>
-          <Group title="Signed in">
-            <Row emoji="✉️" label={user.email ?? 'Apple account'} sublabel="Your log syncs to this account" />
+          <Group>
+            <Row emoji="✉️" label={user.email ?? 'Apple account'} />
           </Group>
-          <Button title={busy && !confirming ? 'Signing out…' : 'Sign out'} variant="secondary" disabled={busy} onPress={() => void signOut()} />
-          <AppText variant="caption">Signing out keeps what&apos;s on this device.</AppText>
+          <Button title={busy && !confirming ? 'Wait…' : 'Sign out'} variant="secondary" disabled={busy} onPress={() => void signOut()} />
 
-          <Group title="Danger zone" footer="Deletes your account and everything stored for it on the server, then wipes this device. This can't be undone.">
+          <Group>
             <Row emoji="🗑️" label="Delete account" danger onPress={() => { setError(null); setConfirming(true); }} />
           </Group>
         </>
       ) : (
         <>
-          <Note>
-            <AppText variant="label">{signedOut ? 'Signed out' : "You're not signed in"}</AppText>
-            <AppText variant="caption">
-              {backendConfigured
-                ? 'Everything is saved on this device. Sign in to back it up and sync.'
-                : "Everything is saved on this device. Accounts aren't switched on in this build yet."}
-            </AppText>
-          </Note>
+          <Group>
+            <Row emoji="👤" label={signedOut ? 'Signed out' : 'Not signed in'} />
+          </Group>
+          {backendConfigured ? null : <AppText variant="caption" center>Accounts are off in this build.</AppText>}
           <Button title="Sign in" onPress={() => router.push({ pathname: '/auth' })} />
-          <AppText variant="caption">No account means nothing to delete on a server. To wipe this device, use Settings → Your data.</AppText>
         </>
       )}
       {error && !confirming ? <AppText variant="caption" center accessibilityLiveRegion="polite">{error}</AppText> : null}
@@ -86,9 +80,9 @@ export default function AccountSettings() {
       <ConfirmModal
         visible={confirming}
         top={<Cow size={96} pose="shocked" accessibilityLabel="Moo the cow, shocked" />}
-        title="Delete your account?"
-        body="Your account, synced log and everything on this device will be gone for good."
-        confirmLabel="Delete forever"
+        title="Delete account?"
+        body="Account and device data. Can't be undone."
+        confirmLabel="Delete"
         requireText="DELETE"
         busy={busy}
         error={error}

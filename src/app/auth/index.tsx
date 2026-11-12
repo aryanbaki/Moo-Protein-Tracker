@@ -13,7 +13,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleShee
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Button, Card, Screen } from '../../components';
+import { AppText, Button, Screen } from '../../components';
 import { EMAIL_CODE_LENGTH, isCompleteCode, isValidEmail, normalizeCode, normalizeEmail, useAuth, type AuthResult } from '../../features/auth';
 import { restoreProfileFromServer, syncNow } from '../../features/sync';
 import { Cow } from '../../mascot';
@@ -107,7 +107,7 @@ export default function AuthScreen() {
       setStep('code');
       setCode('');
       setResendIn(RESEND_SECONDS);
-      if (kind === 'resend') setNotice('New code sent.');
+      if (kind === 'resend') setNotice('Sent');
       setTimeout(() => codeInput.current?.focus(), 50);
     });
 
@@ -116,15 +116,10 @@ export default function AuthScreen() {
 
   const emailOk = isValidEmail(email);
   const codeOk = isCompleteCode(code);
-  const skipLabel = flow === 'onboarding' ? 'Skip for now' : 'Not now';
+  const skipLabel = flow === 'onboarding' ? 'Skip' : 'Cancel';
 
-  const title = step === 'no_plan' ? "You're signed in" : flow === 'signin' ? 'Welcome back' : 'Save your progress';
-  const subtitle =
-    step === 'no_plan'
-      ? "There's no saved plan on this account yet. Finish the quick setup and Moo will keep it safe from here."
-      : flow === 'signin'
-        ? 'Sign in and Moo will fetch your goals and your logs.'
-        : 'Create a free account so your goals, your logs and your cow follow you to any phone.';
+  // One title per state, three words at most. No subtitle.
+  const title = step === 'no_plan' ? 'No saved plan' : step === 'code' ? 'Enter code' : flow === 'signin' ? 'Sign in' : 'Save progress';
 
   return (
     <View style={styles.root}>
@@ -139,19 +134,13 @@ export default function AuthScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.body}>
           <View style={styles.hero}>
             <Cow size={150} pose={step === 'no_plan' ? 'shrug' : 'wave'} accessibilityLabel="Moo the cow waving" />
-            <AppText variant="heading" center accessibilityRole="header">{title}</AppText>
-            <AppText variant="body" center color={colors.textSecondary}>{subtitle}</AppText>
+            <AppText variant="title" center accessibilityRole="header">{title}</AppText>
           </View>
 
           {!backendConfigured ? (
             <View style={styles.block}>
-              <Card style={styles.infoCard}>
-                <AppText variant="label">Accounts aren&apos;t switched on in this build</AppText>
-                <AppText variant="caption">Everything you log is saved on this device. You can add an account later from Settings once sign-in is available.</AppText>
-              </Card>
-              <Pressable accessibilityRole="button" onPress={skip} style={({ pressed }) => [styles.wideButton, pressed ? styles.pressed : null]}>
-                <AppText variant="label" center color={colors.textOnPrimary} style={styles.wideButtonText}>Continue without an account</AppText>
-              </Pressable>
+              <AppText variant="caption" center>Accounts are off in this build.</AppText>
+              <Button title="Continue" accessibilityLabel="Continue without an account" onPress={skip} />
             </View>
           ) : !ready ? (
             <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" />
@@ -170,14 +159,8 @@ export default function AuthScreen() {
                     style={styles.appleButton}
                     onPress={apple}
                   />
-                  <View style={styles.divider} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    <View style={styles.rule} />
-                    <AppText variant="caption">or</AppText>
-                    <View style={styles.rule} />
-                  </View>
                 </>
               ) : null}
-              <AppText variant="label">Email</AppText>
               <TextInput
                 accessibilityLabel="Email address"
                 value={email}
@@ -185,7 +168,7 @@ export default function AuthScreen() {
                   setEmail(t);
                   setError(null);
                 }}
-                placeholder="you@example.com"
+                placeholder="Email"
                 placeholderTextColor={colors.textSecondary}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -195,17 +178,15 @@ export default function AuthScreen() {
                 textContentType="emailAddress"
                 returnKeyType="send"
                 editable={!busy}
-                onSubmitEditing={() => (emailOk ? void sendCode('send') : setError("That email doesn't look right."))}
+                onSubmitEditing={() => (emailOk ? void sendCode('send') : setError('Check the email.'))}
                 style={[styles.input, error ? styles.inputError : null]}
               />
               <ErrorLine text={error} />
-              <Button title={busy === 'send' ? 'Sending…' : 'Email me a code'} onPress={() => void sendCode('send')} disabled={!emailOk || !!busy} />
-              <AppText variant="small" center>We&apos;ll email a {EMAIL_CODE_LENGTH}-digit code. No password to remember.</AppText>
+              <Button title={busy === 'send' ? 'Sending…' : 'Send code'} onPress={() => void sendCode('send')} disabled={!emailOk || !!busy} />
             </View>
           ) : (
             <View style={styles.block}>
-              <AppText variant="label">Enter the {EMAIL_CODE_LENGTH}-digit code</AppText>
-              <AppText variant="caption">Sent to {normalizeEmail(email)}. It can take a minute; check spam too.</AppText>
+              <AppText variant="caption" center numberOfLines={1}>{normalizeEmail(email)}</AppText>
               <TextInput
                 ref={codeInput}
                 accessibilityLabel={`${EMAIL_CODE_LENGTH}-digit code`}
@@ -227,15 +208,17 @@ export default function AuthScreen() {
               />
               <ErrorLine text={error} />
               {notice && !error ? <AppText variant="caption" center color={colors.good} accessibilityLiveRegion="polite">{notice}</AppText> : null}
-              <Button title={busy === 'verify' ? 'Checking…' : busy === 'restore' ? 'Fetching your plan…' : 'Verify'} onPress={() => void verify()} disabled={!codeOk || !!busy} />
+              <Button title={busy === 'verify' ? 'Checking…' : busy === 'restore' ? 'Loading…' : 'Verify'} onPress={() => void verify()} disabled={!codeOk || !!busy} />
               <View style={styles.linkRow}>
                 <LinkButton
-                  title={resendIn > 0 ? `Resend code in ${resendIn}s` : busy === 'resend' ? 'Sending…' : 'Resend code'}
+                  title={resendIn > 0 ? `Resend · ${resendIn}s` : busy === 'resend' ? 'Sending…' : 'Resend'}
+                  accessibilityLabel={resendIn > 0 ? `Resend code in ${resendIn} seconds` : 'Resend code'}
                   disabled={resendIn > 0 || !!busy}
                   onPress={() => void sendCode('resend')}
                 />
                 <LinkButton
-                  title="Use a different email"
+                  title="Change email"
+                  accessibilityLabel="Use a different email"
                   disabled={!!busy}
                   onPress={() => {
                     setStep('start');
@@ -266,9 +249,9 @@ function ErrorLine({ text }: { text: string | null }) {
   );
 }
 
-function LinkButton({ title, onPress, disabled }: { title: string; onPress: () => void; disabled?: boolean }) {
+function LinkButton({ title, onPress, disabled, accessibilityLabel }: { title: string; onPress: () => void; disabled?: boolean; accessibilityLabel?: string }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} hitSlop={6} style={styles.link}>
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} hitSlop={6} style={styles.link}>
       <AppText variant="label" color={disabled ? colors.textSecondary : colors.primary} style={disabled ? null : styles.linkText}>{title}</AppText>
     </Pressable>
   );
@@ -277,18 +260,11 @@ function LinkButton({ title, onPress, disabled }: { title: string; onPress: () =
 const styles = StyleSheet.create({
   body: { gap: spacing.lg },
   root: { flex: 1, backgroundColor: colors.background },
-  // Same pill as Button, with type small enough for the long label to stay on one line.
-  wideButton: { minHeight: 58, borderRadius: radius.pill, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
-  wideButtonText: { fontFamily: fonts.black, fontSize: 15, letterSpacing: 0.5, textTransform: 'uppercase' },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
   close: { position: 'absolute', right: spacing.md, width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt },
   closeGlyph: { lineHeight: 30 },
   hero: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.lg },
   block: { gap: spacing.md },
-  infoCard: { gap: spacing.xs },
   appleButton: { height: 58, width: '100%' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  rule: { flex: 1, height: 1, backgroundColor: colors.border },
   input: {
     minHeight: 58,
     borderRadius: radius.md,

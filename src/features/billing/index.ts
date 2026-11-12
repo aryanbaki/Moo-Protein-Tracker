@@ -72,8 +72,8 @@ const storePackages = new Map<string, PurchasesPackage>();
 
 function errorMessage(err: unknown): string {
   const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message).toLowerCase() : '';
-  if (msg.includes('network') || msg.includes('offline')) return "Can't reach the App Store. Check your connection and try again.";
-  return "That didn't go through. You have not been charged. Please try again.";
+  if (msg.includes('network') || msg.includes('offline')) return 'No connection. Try again.';
+  return 'Not charged. Try again.';
 }
 
 export const useBilling = create<BillingState>()(
@@ -112,12 +112,12 @@ export const useBilling = create<BillingState>()(
         }
         const Purchases = getPurchases();
         const pkg = storePackages.get(plan.id);
-        if (!Purchases || !pkg) return { ok: false, error: "Purchases aren't set up in this build yet." };
+        if (!Purchases || !pkg) return { ok: false, error: 'Purchases are off in this build.' };
         try {
           const { customerInfo } = await Purchases.purchasePackage(pkg);
           const premium = hasPremium(customerInfo);
           set({ isPremium: premium });
-          return premium ? { ok: true } : { ok: false, error: 'The purchase finished but premium is not active yet. Try Restore purchases in a moment.' };
+          return premium ? { ok: true } : { ok: false, error: 'Not active yet. Try Restore.' };
         } catch (err) {
           if (err && typeof err === 'object' && 'userCancelled' in err && (err as { userCancelled?: boolean }).userCancelled) {
             return { ok: false, cancelled: true, error: '' };
@@ -129,7 +129,7 @@ export const useBilling = create<BillingState>()(
       restore: async () => {
         if (mode === 'preview') return { ok: true, restored: get().isPremium };
         const Purchases = getPurchases();
-        if (!Purchases) return { ok: false, error: "Purchases aren't set up in this build yet." };
+        if (!Purchases) return { ok: false, error: 'Purchases are off in this build.' };
         try {
           const premium = hasPremium(await Purchases.restorePurchases());
           set({ isPremium: premium });

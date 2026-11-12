@@ -13,7 +13,7 @@ const MAIN_GOALS: { value: MainGoal; title: string; emoji: string }[] = [
   { value: 'build_muscle', title: 'Build muscle', emoji: '💪' },
   { value: 'lose_fat', title: 'Lose fat', emoji: '🔥' },
   { value: 'maintain', title: 'Maintain', emoji: '⚖️' },
-  { value: 'eat_better', title: 'Just eat better', emoji: '🥗' },
+  { value: 'eat_better', title: 'Eat better', emoji: '🥗' },
 ];
 const GYM_DAYS: { value: GymDays; label: string }[] = [
   { value: '0-1', label: '0–1' },
@@ -75,8 +75,6 @@ export default function BodySettings() {
 
   return (
     <SettingsScreen title="Body details">
-      <AppText variant="caption">Moo uses these to estimate your goals. Changes save as you type.</AppText>
-
       <AppText variant="label">Sex</AppText>
       <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: spacing.sm }}>
         {(['male', 'female'] as Sex[]).map((s) => (
@@ -85,12 +83,11 @@ export default function BodySettings() {
           </View>
         ))}
       </View>
-      <AppText variant="small">Only used for the calorie formula.</AppText>
 
-      <Field label="Birth year" value={year} onChangeText={onYear} maxLength={4} placeholder="1998" tone={year !== '' && !yearOk ? 'bad' : 'neutral'} note={year !== '' && !yearOk ? `Enter a year between ${thisYear - 110} and ${thisYear - 13}.` : undefined} />
+      <Field label="Birth year" value={year} onChangeText={onYear} maxLength={4} placeholder="1998" tone={year !== '' && !yearOk ? 'bad' : 'neutral'} note={year !== '' && !yearOk ? `${thisYear - 110}–${thisYear - 13}` : undefined} />
 
       {metric ? (
-        <Field label="Height" value={cm} suffix="cm" maxLength={3} placeholder="175" onChangeText={(t) => { const c = t.replace(/[^\d]/g, ''); setCm(c); commitHeight(parseNumber(c)); }} tone={cm !== '' && !heightOk ? 'bad' : 'neutral'} note={cm !== '' && !heightOk ? 'Enter a height between 100 and 250 cm.' : undefined} />
+        <Field label="Height" value={cm} suffix="cm" maxLength={3} placeholder="175" onChangeText={(t) => { const c = t.replace(/[^\d]/g, ''); setCm(c); commitHeight(parseNumber(c)); }} tone={cm !== '' && !heightOk ? 'bad' : 'neutral'} note={cm !== '' && !heightOk ? '100–250 cm' : undefined} />
       ) : (
         <View style={{ gap: spacing.xs }}>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -98,37 +95,35 @@ export default function BodySettings() {
               <Field label="Height" value={ft} suffix="ft" maxLength={1} placeholder="5" onChangeText={(t) => { const c = t.replace(/[^\d]/g, ''); setFt(c); const f = parseNumber(c); const i = parseNumber(inch) ?? 0; commitHeight(f === null ? null : ftInToCm(f, i), i < 12); }} tone={ft !== '' && !heightOk ? 'bad' : 'neutral'} />
             </View>
             <View style={{ flex: 1 }}>
-              <Field label=" " value={inch} suffix="in" maxLength={2} placeholder="9" onChangeText={(t) => { const c = t.replace(/[^\d]/g, ''); setInch(c); const f = parseNumber(ft); const i = parseNumber(c) ?? 0; commitHeight(f === null ? null : ftInToCm(f, i), i < 12); }} tone={ft !== '' && !heightOk ? 'bad' : 'neutral'} />
+              <Field label=" " accessibilityLabel="Height" value={inch} suffix="in" maxLength={2} placeholder="9" onChangeText={(t) => { const c = t.replace(/[^\d]/g, ''); setInch(c); const f = parseNumber(ft); const i = parseNumber(c) ?? 0; commitHeight(f === null ? null : ftInToCm(f, i), i < 12); }} tone={ft !== '' && !heightOk ? 'bad' : 'neutral'} />
             </View>
           </View>
-          {ft !== '' && !heightOk ? <AppText variant="caption">⛔ Enter a height between 3 ft 4 in and 8 ft 2 in (inches 0–11).</AppText> : null}
+          {ft !== '' && !heightOk ? <AppText variant="caption">⛔ 3 ft 4 in – 8 ft 2 in</AppText> : null}
         </View>
       )}
 
-      <Field label="Weight" value={weight} suffix={metric ? 'kg' : 'lb'} keyboardType="decimal-pad" placeholder={metric ? '80' : '176'} onChangeText={onWeight} tone={weight !== '' && !weightOk ? 'bad' : 'neutral'} note={weight !== '' && !weightOk ? `That doesn't look like a weight in ${metric ? 'kg' : 'lb'}.` : undefined} />
+      <Field label="Weight" value={weight} suffix={metric ? 'kg' : 'lb'} keyboardType="decimal-pad" placeholder={metric ? '80' : '176'} onChangeText={onWeight} tone={weight !== '' && !weightOk ? 'bad' : 'neutral'} note={weight !== '' && !weightOk ? (metric ? '25–350 kg' : '56–771 lb') : undefined} />
 
-      <AppText variant="label">Main goal</AppText>
-      <View accessibilityRole="radiogroup" style={{ gap: spacing.sm }}>
+      <AppText variant="label">Goal</AppText>
+      <View accessibilityRole="radiogroup" accessibilityLabel="Main goal" style={{ gap: spacing.sm }}>
         {MAIN_GOALS.map((g) => (
           <OptionCard key={g.value} title={g.title} emoji={g.emoji} selected={answers.mainGoal === g.value} onPress={() => { setAnswers({ mainGoal: g.value }); touch(); }} />
         ))}
       </View>
 
-      <AppText variant="label">Gym days per week</AppText>
+      <AppText variant="label">Gym days</AppText>
       <Segmented accessibilityLabel="Gym days per week" options={GYM_DAYS} value={answers.gymDays ?? ('' as GymDays)} onChange={(v) => { setAnswers({ gymDays: v }); touch(); }} />
 
       {applied ? (
-        <Note tone="good">Goals updated to match. Moo approves.</Note>
+        <Note tone="good">Goals updated</Note>
       ) : differs ? (
         <Note tone="good">
-          <AppText variant="label">Your goals don&apos;t change by themselves</AppText>
-          <AppText variant="caption">
-            {`With these details Moo would suggest ${suggested.proteinG} g protein, ${suggested.calories} kcal, ${suggested.carbsG} g carbs and ${suggested.fatG} g fat.`}
+          <AppText variant="label" center accessibilityLabel={`Suggested goals: ${suggested.proteinG} grams protein, ${suggested.calories} calories, ${suggested.carbsG} grams carbs, ${suggested.fatG} grams fat`}>
+            {`${suggested.proteinG} g protein · ${String(suggested.calories).replace(/\B(?=(\d{3})+(?!\d))/g, ',')} kcal`}
           </AppText>
-          <Button title="Use suggested goals" variant="secondary" style={{ minHeight: 50, marginTop: spacing.xs }} onPress={() => { useProfile.getState().setGoals(suggested); setApplied(true); }} />
+          <Button title="Update goals" accessibilityLabel="Use suggested goals" variant="secondary" style={{ minHeight: 50, marginTop: spacing.xs }} onPress={() => { useProfile.getState().setGoals(suggested); setApplied(true); }} />
         </Note>
       ) : null}
-      <AppText variant="small" center>Estimates only, not medical advice.</AppText>
     </SettingsScreen>
   );
 }

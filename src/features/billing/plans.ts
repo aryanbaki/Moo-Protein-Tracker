@@ -32,7 +32,7 @@ export interface Plan {
 }
 
 export const PRICE_PLACEHOLDER = '—';
-export const PRICE_PLACEHOLDER_NOTE = 'Price set in App Store';
+export const PRICE_PLACEHOLDER_NOTE = 'App Store price';
 
 /** Sample plans for builds without a store key. Prices are deliberately blank. */
 export const SAMPLE_PLANS: Plan[] = [
@@ -104,19 +104,19 @@ export function defaultPlanId(plans: Pick<Plan, 'id' | 'kind'>[]): string | null
 }
 
 export function trialLabel(days: number): string {
-  return `${days}-day free trial`;
+  return `${days}-day trial`;
 }
 
-/** The honest small print under the button. */
+/**
+ * The one legal line under the button. Always says it renews and can be
+ * cancelled. When a trial turns into a known store price, it says that too,
+ * because the charge after a trial must not be a surprise.
+ */
 export function renewalCopy(plan: Plan | null): string {
-  const tail = 'Cancel anytime in Settings. Renews automatically.';
-  if (!plan) return tail;
-  const hasPrice = plan.priceLabel !== PRICE_PLACEHOLDER;
-  const price = hasPrice ? `${plan.priceLabel}${plan.periodLabel ? ` ${plan.periodLabel}` : ''}` : null;
-  if (plan.trialDays && price) return `Free for ${plan.trialDays} days, then ${price}. ${tail}`;
-  if (plan.trialDays) return `Free for ${plan.trialDays} days, then the ${plan.title.toLowerCase()} price shown in the App Store. ${tail}`;
-  if (price) return `${price}. ${tail}`;
-  return tail;
+  const tail = 'Renews automatically. Cancel anytime.';
+  if (!plan?.trialDays || plan.priceLabel === PRICE_PLACEHOLDER) return tail;
+  const price = `${plan.priceLabel}${plan.periodLabel ? ` ${plan.periodLabel}` : ''}`;
+  return `${plan.trialDays} days free, then ${price}. ${tail}`;
 }
 
 /** Is the "premium" entitlement active in a RevenueCat CustomerInfo-shaped object? */

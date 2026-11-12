@@ -56,9 +56,12 @@ export interface RowProps {
   disabled?: boolean;
   /** Replaces the chevron. */
   right?: ReactNode;
+  /** Screen-reader name when the visible label is too short to stand alone. Defaults to the label. */
+  accessibilityLabel?: string;
 }
 
-export function Row({ label, sublabel, value, emoji, onPress, danger, disabled, right }: RowProps) {
+export function Row({ label, sublabel, value, emoji, onPress, danger, disabled, right, accessibilityLabel }: RowProps) {
+  const spoken = accessibilityLabel ?? label;
   const body = (
     <>
       {emoji ? <Text style={styles.rowEmoji}>{emoji}</Text> : null}
@@ -74,7 +77,7 @@ export function Row({ label, sublabel, value, emoji, onPress, danger, disabled, 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={value ? `${label}, ${value}` : label}
+      accessibilityLabel={value ? `${spoken}, ${value}` : spoken}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -85,7 +88,7 @@ export function Row({ label, sublabel, value, emoji, onPress, danger, disabled, 
   );
 }
 
-export function ToggleRow({ label, sublabel, value, onChange, disabled }: { label: string; sublabel?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function ToggleRow({ label, sublabel, value, onChange, disabled, accessibilityLabel }: { label: string; sublabel?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; accessibilityLabel?: string }) {
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
@@ -93,7 +96,7 @@ export function ToggleRow({ label, sublabel, value, onChange, disabled }: { labe
         {sublabel ? <AppText variant="caption">{sublabel}</AppText> : null}
       </View>
       <Switch
-        accessibilityLabel={label}
+        accessibilityLabel={accessibilityLabel ?? label}
         value={value}
         onValueChange={onChange}
         disabled={disabled}
@@ -108,6 +111,8 @@ export function ToggleRow({ label, sublabel, value, onChange, disabled }: { labe
 
 export interface FieldProps {
   label: string;
+  /** Screen-reader name when the visible label is too short to stand alone. Defaults to the label. */
+  accessibilityLabel?: string;
   value: string;
   onChangeText: (t: string) => void;
   suffix?: string;
@@ -120,7 +125,7 @@ export interface FieldProps {
   autoCapitalize?: 'none' | 'characters';
 }
 
-export function Field({ label, value, onChangeText, suffix, note, tone = 'neutral', keyboardType = 'number-pad', placeholder, maxLength = 6, autoCapitalize }: FieldProps) {
+export function Field({ label, accessibilityLabel, value, onChangeText, suffix, note, tone = 'neutral', keyboardType = 'number-pad', placeholder, maxLength = 6, autoCapitalize }: FieldProps) {
   const [focused, setFocused] = useState(false);
   const toneColor = tone === 'bad' ? colors.bad : tone === 'warning' ? colors.warning : focused ? colors.primary : colors.border;
   return (
@@ -128,7 +133,7 @@ export function Field({ label, value, onChangeText, suffix, note, tone = 'neutra
       <AppText variant="label">{label}</AppText>
       <View style={[styles.field, { borderColor: toneColor }]}>
         <TextInput
-          accessibilityLabel={suffix ? `${label}, ${suffix}` : label}
+          accessibilityLabel={suffix ? `${accessibilityLabel ?? label}, ${suffix}` : (accessibilityLabel ?? label)}
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
@@ -204,7 +209,7 @@ export function Segmented<T extends string>({ options, value, onChange, accessib
 export interface ConfirmModalProps {
   visible: boolean;
   title: string;
-  body: string;
+  body?: string;
   confirmLabel: string;
   /** When set, the user has to type this word before the confirm button works. */
   requireText?: string;
@@ -229,13 +234,13 @@ export function ConfirmModal({ visible, title, body, confirmLabel, requireText, 
         <View accessibilityViewIsModal style={styles.modalCard}>
           {top ? <View style={{ alignItems: 'center' }}>{top}</View> : null}
           <AppText variant="heading" center>{title}</AppText>
-          <AppText variant="body" center color={colors.textSecondary}>{body}</AppText>
+          {body ? <AppText variant="body" center color={colors.textSecondary}>{body}</AppText> : null}
           {requireText ? (
-            <Field label={`Type ${requireText} to confirm`} value={typed} onChangeText={setTyped} keyboardType="default" autoCapitalize="characters" maxLength={20} placeholder={requireText} />
+            <Field label={`Type ${requireText}`} accessibilityLabel={`Type ${requireText} to confirm`} value={typed} onChangeText={setTyped} keyboardType="default" autoCapitalize="characters" maxLength={20} placeholder={requireText} />
           ) : null}
           {error ? <AppText variant="caption" color={colors.bad} center>{error}</AppText> : null}
           <Button
-            title={busy ? 'Working…' : confirmLabel}
+            title={busy ? 'Wait…' : confirmLabel}
             variant="danger"
             disabled={!ok || busy}
             onPress={() => {

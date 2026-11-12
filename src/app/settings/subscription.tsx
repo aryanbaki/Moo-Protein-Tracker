@@ -24,11 +24,11 @@ export default function SubscriptionSettings() {
     setMessage(null);
     try {
       const res = await restore();
-      if (res && !res.ok) setMessage(res.error ?? "Couldn't restore purchases.");
-      else if (useBilling.getState().isPremium) setMessage('Premium restored. Welcome back to the good pasture.');
-      else setMessage('No purchases found for this Apple ID.');
+      if (res && !res.ok) setMessage(res.error ?? "Couldn't restore. Try again.");
+      else if (useBilling.getState().isPremium) setMessage('Premium restored');
+      else setMessage('Nothing to restore.');
     } catch {
-      setMessage("Couldn't restore purchases. Try again.");
+      setMessage("Couldn't restore. Try again.");
     } finally {
       setBusy(false);
     }
@@ -39,29 +39,29 @@ export default function SubscriptionSettings() {
       <Card>
         <View style={{ alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
           <Cow size={120} pose={isPremium ? 'crown' : 'idle'} accessibilityLabel={isPremium ? 'Moo the cow wearing a crown' : 'Moo the cow'} />
-          <AppText variant="heading" center>{isPremium ? 'Moo Premium' : 'Free plan'}</AppText>
-          <AppText variant="caption" center>
-            {isPremium
-              ? 'Unlimited photo scans, month and year history, and the weekly cow.'
-              : `Manual and barcode logging are free forever. ${Math.min(used, FREE_PHOTO_SCANS)} of ${FREE_PHOTO_SCANS} free photo scans used.`}
-          </AppText>
+          <AppText variant="heading" center>{isPremium ? 'Premium' : 'Free'}</AppText>
+          {isPremium ? null : (
+            <AppText variant="caption" center accessibilityLabel={`${Math.min(used, FREE_PHOTO_SCANS)} of ${FREE_PHOTO_SCANS} free photo scans used`}>
+              {`${Math.min(used, FREE_PHOTO_SCANS)} / ${FREE_PHOTO_SCANS} scans`}
+            </AppText>
+          )}
         </View>
       </Card>
 
       {isPremium ? (
-        <AppText variant="caption" center>Manage or cancel in the App Store: your Apple ID → Subscriptions.</AppText>
+        <AppText variant="caption" center>Manage in the App Store.</AppText>
       ) : (
         <>
-          <Group title="Premium adds">
-            <Row emoji="📸" label="Unlimited photo scans" />
-            <Row emoji="📈" label="Month and year history" />
-            <Row emoji="🐄" label="Weekly cow view" />
+          <Group>
+            <Row emoji="📸" label="Unlimited scans" />
+            <Row emoji="🗓️" label="Week view" />
+            <Row emoji="📈" label="Full history" />
           </Group>
           <Button title="Go Premium" onPress={() => presentPaywall()} />
         </>
       )}
 
-      {restore ? <Button title={busy ? 'Restoring…' : 'Restore purchases'} variant="ghost" disabled={busy} onPress={() => void onRestore()} /> : null}
+      {restore ? <Button title={busy ? 'Restoring…' : 'Restore'} accessibilityLabel="Restore purchases" variant="ghost" disabled={busy} onPress={() => void onRestore()} /> : null}
       {message ? <AppText variant="caption" center accessibilityLiveRegion="polite">{message}</AppText> : null}
     </SettingsScreen>
   );
