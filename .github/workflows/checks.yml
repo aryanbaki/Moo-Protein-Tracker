@@ -16,8 +16,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run test:setup
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run doctor
       - name: Verify iOS JavaScript bundling
-        run: npx expo export --platform ios
+        run: npm run export:ios

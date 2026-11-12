@@ -21,7 +21,12 @@ The foundation uses stable SDK 58, initialized from Expo's official default temp
 - app.json: Moo display name, moo-protein-tracker slug, moo URL scheme,
   portrait/light UI, iPhone-only configuration, and Expo Router plugin. No owner,
   extra.eas.projectId, or ios.bundleIdentifier is configured yet.
-- No eas.json, native ios/android directories, storage module, or test suite exists.
+- eas.json: pinned EAS CLI, development/preview/production build profiles and a
+  pending production submission profile.
+- .github/workflows/delivery.yml: manual delivery with closed readiness gates.
+- scripts/: read-only Expo metadata lookup and tested delivery preflight guards.
+- docs/cloud-setup.md / docs/design.md: practical cloud/Apple runbook and UI rules.
+- No native ios/android directories, storage module, or product tests exist.
 
 Keep routes thin as features grow. Introduce src/components for shared UI,
 src/features for logging/goals/history logic, and src/storage for persistence
@@ -44,6 +49,11 @@ zero goals without division errors.
 Validate positive finite amounts and goal inputs. Migration, edit/delete, date
 boundary, and progress calculation tests are required when implementing logic.
 No data persistence or cloud synchronization exists yet.
+Before launch, decide export/backup format, what happens on uninstall/device loss,
+restore validation, conflict/duplicate handling, and migration compatibility.
+Test export/restore round trips, corrupt/older data, timezone changes around
+midnight, edits that cross recorded days, and transactional delete/migration failures.
+Do not assume cloud build infrastructure backs up users' local data.
 
 ## Cloud workflow
 Codex and Claude Code share AGENTS.md. A cloud coding environment can install
@@ -53,24 +63,82 @@ Preview/production binaries bundle JavaScript and do not need a laptop or Metro
 server to remain running. Interactive Metro development still needs an active
 development environment.
 
-### Existing Expo project and build setup
-The user-provided existing Expo project ID is
-`e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1`. Reuse it; never create another project.
-The ID is recorded here but is not yet linked in app.json, and account access has
-not been verified. A later setup task should authenticate in the cloud using
-secure environment credentials, verify access to that exact project, and link
-it explicitly (for example, `npx eas-cli init --id e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1`). Do not accept a prompt to
-create a project. Confirm the resulting configuration before proceeding.
+### Existing Expo project and app identity
+Existing user-supplied Expo project ID:
+`e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1`. Known username: `aryanbaki`;
+user-reported dashboard title: “Moo: Protein Tracker”. Authenticated owner and slug
+remain unverified; a team may own it. The current local name “Moo”, slug
+“moo-protein-tracker”, URL scheme “moo”, version 1.0.0, portrait/light UI, and
+supportsTablet=false are retained. Expo resolves default platforms to iOS, Android,
+and web because no platforms override is set; only iOS delivery is prepared, and
+Android/web product support is outside the launch scope. No new app or Expo project was initialized.
 
-Then configure eas.json profiles, the owner's chosen iOS bundle identifier, and
-Apple signing. Internal physical-device previews require signing and registered
-devices; TestFlight requires App Store Connect setup. Use an installable preview
-with bundled JavaScript when testing without an active Metro session. A development
-client can still require Metro. EAS cloud jobs can continue after submission
-without a laptop staying on. Build submission is a separate, explicitly requested
-step; no build is authorized as part of this documentation handoff.
+The read-only `npm run expo:project` looks up the exact ID. Once access works,
+record the returned owner/slug and project ID in app.json, confirm any existing
+bundle identifier in Expo/Apple, and verify the resolved config. Never infer Apple
+Team ID or App Store Connect numeric app ID from an Expo account. No permanent
+bundle ID, Apple Team ID, or ascAppId is configured. See the cloud runbook for the
+proposed bundle ID (pending existing-identifier checks and owner confirmation).
 
-The existing GitHub Actions workflow runs npm ci, typecheck, lint, doctor, and an
-iOS JavaScript export on pull requests and pushes to main. Merely pushing to the
-foundation branch does not establish a successful CI run. Consult docs/status.md
-for observed validation results and unresolved environment requirements.
+### Native build profiles and delivery
+GitHub Actions is the single delivery orchestrator; EAS performs cloud compilation,
+signing, and uploads. No competing Expo Workflow is configured. checks.yml handles
+PR/main checks. delivery.yml is workflow_dispatch-only; it does not execute from
+pushes. It separates preview-build, production-build, testflight, preview-update,
+and production-update with exact confirmation, readiness gates, and production
+main-branch restrictions. Environment reviewer/branch protection setup remains an
+owner action. The guard rechecks authenticated project metadata; submissions also
+validate the exact finished production iOS build and project rather than “latest”.
+
+EAS CLI **27.7.2** is pinned in eas.json and commands, invoked through npx outside
+app dependencies. Node 24 LTS is consistent across .nvmrc/CI, with cloud build
+Node pinned to **24.22.1**. EAS-managed iOS images are not yet validated by a native
+build; choose a supported Xcode image in a future build task if needed. Version
+source is remote; production auto-increments the build number when an authorized
+build is started. requireCommit=true keeps submitted source committed.
+
+| Profile | Purpose | Distribution / environment / channel |
+| --- | --- | --- |
+| development | expo-dev-client debugging; Metro may be required | internal / development / no release channel |
+| preview | Installable binary with bundled JavaScript | internal / preview / preview |
+| production | App Store/TestFlight binary; upload is separate | store / production / production |
+
+`expo-dev-client ~58.0.18` and `expo-updates ~58.0.21` were selected through the
+installed SDK 58 bundled compatibility map, matching official versioned docs.
+SQLite remains uninstalled until storage implementation. ios/ and android/ remain
+generated by Expo/EAS rather than committed. Internal iPhone distribution needs
+valid signing and a registered device. TestFlight needs App Store Connect setup
+and processing; public release needs review. None of these device/build steps has
+been verified by this preparation task.
+
+### Update preparation and compatibility
+The installed expo-updates package has a prepared **fingerprint** runtime policy.
+It derives the runtime from native dependencies/configuration to avoid relying on
+manual version bumps to prevent incompatible updates. It can conservatively
+require extra builds; investigate fingerprint changes rather than overriding the
+runtime to force delivery. Native dependencies, permissions/config plugins, SDK,
+and native configuration changes require a new compatible native build.
+JavaScript/UI/assets can use OTA only when the runtime and platform match and
+App Store rules permit the change. Data migrations also need backward-compatible
+rollout/rollback planning, even when native fingerprints match.
+
+Updates are deliberately disabled (`updates.enabled=false`) and have no URL yet
+because authenticated project verification is blocked. After verification, set
+the exact existing project's `https://u.expo.dev/<project-ID>` URL and enable
+updates as described in cloud-setup.md. No placeholder owner or identifier is
+release configuration. Preview and production profiles have distinct channels
+and explicit EAS environments, and their workflow actions pass both explicitly.
+
+Prepared launch behavior uses checkAutomatically=ON_LOAD and
+fallbackToCacheTimeout=0. The embedded or cached compatible bundle launches without
+waiting for a download. A downloaded update normally applies on a later cold
+launch; network/cache/error-recovery behavior affects timing. Do not promise
+instant updates or require a laptop/Metro for standalone preview/TestFlight use.
+No custom update prompt/reload UI was added. Channels must be mapped and verified
+before first publication; no channel or remote update was created here.
+
+Rollback is an explicitly authorized publication using pinned CLI
+`update:rollback`, selecting the correct branch/runtime and either a known-good
+update or the embedded bundle. Verify channel mapping and data compatibility
+first, record the result, and smoke-test the device. See the cloud runbook for
+the procedure and official references. No update or rollback was published.

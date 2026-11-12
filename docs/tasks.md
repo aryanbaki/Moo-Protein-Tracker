@@ -31,13 +31,29 @@ A temporary cloud bootstrap workflow generated the dependencies and lockfile;
 it is removed from the final foundation. The retained checks workflow uses
 read-only repository permissions and validates future pull requests.
 
+## Cloud preparation completed (November 11, 2026)
+- Preserved the current foundation and prepared EAS development/preview/production
+  profiles with pinned tooling, separate update channels, and fingerprint policy.
+- Installed SDK-compatible development client and updates libraries; OTA remains
+  disabled pending authenticated project verification.
+- Prepared one manual GitHub delivery workflow with closed gates and behavior
+  tests, retained shared read-only CI, and added a safe read-only metadata lookup.
+- Added docs/cloud-setup.md and docs/design.md; expanded shared agent handoffs,
+  product validation assumptions, update/rollback guidance, and Apple setup steps.
+- Local clean install, TypeScript, lint, iOS export, guard tests, schema, and
+  workflow validation passed. Doctor is blocked on network; account/signing setup
+  remains unverified. See status.md for exact current errors and results.
+
 ## Next steps
-1. Complete the validation handoff in docs/status.md, then link the existing Expo
-   project e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1; choose the real iOS bundle ID.
-2. Configure EAS cloud build profiles and Apple signing for a physical iPhone.
+1. Use the published cloud environment in a fresh session; verify live Expo
+   network/token access, rerun Doctor, and retrieve authenticated project metadata.
+   Link only e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1 and confirm the real iOS bundle ID.
+2. Finish the prepared update configuration and verify Apple signing, device
+   registration, App Store Connect app/API key, and GitHub readiness gates.
 3. Build and install an internal preview or TestFlight build; smoke-test on iPhone.
 4. Agree on manual entry fields, goal controls, and calendar-day behavior.
-5. Implement local SQLite storage and migrations with meaningful logic tests.
+5. Decide backup/export/restore and timezone rules, then implement local SQLite
+   storage and migrations with meaningful logic tests.
 6. Add logging, edit/delete, user-set goals, and daily history.
 7. Replace the placeholder cow emoji and implement cow progress.
 
@@ -49,7 +65,8 @@ behavior. JavaScript bundle export does not establish native build success.
 Authentication, backend services, payments, AI features, cloud data sync.
 
 ## Unresolved dependency advisories
-After a non-breaking `npm audit fix`, npm still reports 10 moderate dependency
+The current preparation rechecked audit and non-breaking lockfile-only remediation.
+As in the earlier foundation session, npm still reports 10 moderate dependency
 findings (0 high, 0 critical), propagated from glob and minimatch through Expo's
 CLI/fingerprint tooling and TypeScript ESLint tooling:
 - https://github.com/advisories/GHSA-3g3m-2fjr-6pw4

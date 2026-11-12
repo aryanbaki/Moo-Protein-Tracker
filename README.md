@@ -1,38 +1,36 @@
 # Moo
 
-Your daily protein buddy. An iPhone app for tracking protein and creatine with a cow companion.
+Your daily protein buddy: an iPhone app for manual protein and creatine tracking
+with user-set goals and a friendly cow. The current app is a home-screen scaffold;
+logging, persistence, history, and progress are future features.
 
-## Development
-
-Use a cloud coding environment from your phone; no laptop needs to stay running.
-Use Node.js 24 LTS and npm.
+Use a cloud workspace from a phone; no laptop needs to stay on. Read
+[AGENTS.md](AGENTS.md) and [current status](docs/status.md) first.
 
 ```sh
+# Node 24 LTS, from the repository checkout
 npm ci
+npm run test:setup
 npm run typecheck
 npm run lint
 npm run doctor
+npm run export:ios
 ```
 
-`npm start` runs Metro for interactive development and requires that development
-environment to remain available. Installed preview/production builds bundle the app
-and do not require Metro or a running laptop.
+The iOS export verifies JavaScript bundling, not native compilation or device
+behavior. `npm start` runs Metro and needs an active cloud development environment.
+Standalone preview/TestFlight builds bundle JavaScript and can run independently.
 
-## Next: cloud iPhone builds
+EAS profiles and a guarded manual GitHub delivery workflow are prepared. Expo
+account verification, linking, confirmed Apple identity, signing, native build,
+installation, and device testing remain pending; consult status for actual results.
+Only the existing Expo project `e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1` may be used.
+Pushing this branch cannot trigger builds, submissions, or OTA publications.
 
-Expo EAS Build will build the native app in the cloud. Account linking and Apple
-signing are intentionally deferred. In the next setup session, authenticate with
-your real Expo account, link the existing EAS project
-`e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1` (do not create another project), choose your owned iOS bundle
-identifier, and configure Apple credentials. Do not invent identifiers.
-Then configure EAS build profiles and create an internal-distribution preview build
-(or TestFlight build). Physical-device internal distribution requires Apple signing
-and registered devices; TestFlight requires App Store Connect setup.
-
-No authentication, backend, payments, or AI features are included.
-
-- [Product](docs/product.md)
-- [Architecture](docs/architecture.md)
-- [Current status and next task](docs/status.md)
-- [Foundation history and backlog](docs/tasks.md)
-- [Shared agent instructions](AGENTS.md)
+- [Cloud setup, credentials, Apple steps, and delivery](docs/cloud-setup.md)
+- [Product and validation plan](docs/product.md)
+- [Architecture and update policy](docs/architecture.md)
+- [Design rules](docs/design.md)
+- [Current status](docs/status.md)
+- [History and backlog](docs/tasks.md)
+- [Claude Code entry point](CLAUDE.md)

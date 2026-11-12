@@ -16,3 +16,10 @@ android/
 expo-env.d.ts
 .DS_Store
 npm-debug.*
+
+# Native signing and local EAS credentials
+credentials.json
+*.pem
+*.cer
+*.pfx
+*.provisionprofile
