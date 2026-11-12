@@ -86,6 +86,9 @@ Not blocking the start, but nothing that depends on them can be verified first.
 - Apple Developer account, bundle identifier, and App Store Connect products.
   Required for Sign in with Apple, purchases, and any phone build.
 - Privacy policy and terms URLs for the paywall.
+- A free USDA FoodData Central key as the Supabase secret USDA_API_KEY
+  (food-search). Optional: FatSecret Premier Free keys for the barcode
+  cross-check (food-verify). See docs/food-data.md.
 
 ## Still open from the foundation
 - Confirm the real iOS bundle identifier and Apple team from authoritative
@@ -99,6 +102,16 @@ Not blocking the start, but nothing that depends on them can be verified first.
   cloud environment when last recorded.
 - Add `npm test` to .github/workflows/checks.yml so CI runs the Jest suite.
 - Decide export format and what happens to signed-out local data on uninstall.
+
+## Food data follow-ups (docs/food-data.md §6 and §9)
+- Check one barcode and one search per source on a network that reaches
+  Open Food Facts, USDA and (if enabled) FatSecret; confirm the fixtures.
+- Per-item weight field on photo results ("I weighed it") and portion chips.
+- Ask the analyser which label column it read and per-field legibility; ask
+  for a re-shoot when a label's macros don't add up.
+- Read Open Food Facts v3.5+ per-source nutrition and `carbohydrates-total`.
+- Optional: UK CoFID as a second column in the bundled table.
+- Add a `search` entry source (needs a migration; searches log as `manual`).
 
 ## Not yet verified
 Native iOS compilation, signing, installation, and on-device visual/accessibility

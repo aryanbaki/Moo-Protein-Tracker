@@ -4,35 +4,57 @@ Last verified: November 12, 2026 (UTC). Repository: aryanbaki/Moo-Protein-Tracke
 Branch: claude/bold-noether-ftf0zs (started from claude/modest-ramanujan-n495q3).
 
 ## Food database work completed in this task
-Researched free food-data sources (docs/food-data.md): MyFitnessPal has no
-public API; Moo now uses Open Food Facts (no key) and USDA FoodData Central
-(free key, public domain). Added src/features/foods (provider mappers, merged
-and ranked search, barcode chain OFF → USDA Branded by GTIN, bestMatch hook
-for photo guesses, session cache, OFF search rate guard), a "Search foods"
-screen (src/app/food-search, new "+" menu option), the food-search Edge
-Function that keeps USDA_API_KEY in Supabase, credits in Settings → About.
-The barcode scanner now uses the chain; analyze.ts (photo) was not changed.
+Two passes (docs/food-data.md has the design and sources):
+1. Free sources: Open Food Facts (no key) and USDA FoodData Central (free key,
+   public domain) behind src/features/foods; Search screen; food-search Edge
+   Function holding USDA_API_KEY. MyFitnessPal has no public API.
+2. Reliability and camera protein model:
+   - Barcodes ask Open Food Facts and USDA in parallel and cross-check them with
+     researched tolerances (verify.ts). Results carry a level (Verified, Brand
+     data, USDA data, Community data, From label, Estimate), and records that
+     USDA imported into Open Food Facts don't count as independent.
+   - FatSecret Premier Free added as a verification-only third source
+     (food-verify Edge Function; off until keys are set).
+   - Full nutrition-facts panel (22 nutrients) and a grams field on barcode and
+     search results.
+   - analyze-food's tool schema now returns weight range, cook state, brand,
+     barcode digits and label numbers. estimate.ts turns them into protein via
+     barcode → label photo → package → USDA density × grams → model guess, with
+     a range.
+   - A 50-food protein table generated from USDA SR Legacy CSVs (four
+     byte-identical mirrors, reproducible with scripts/food-reference/).
 
 ## Fresh checks for this task (Node v24.22.1)
-- Passed: npm run typecheck, npm run lint, npm test (22 suites, 279 tests;
-  23 new in src/features/foods/foods.test.ts), npm run test:setup (7),
-  npm run export:ios, web export.
-- Passed: Playwright walk of the web export at 390x844: Search foods → type
-  "whey" → results from both sources with source labels → pick → result sheet;
-  no page errors. The USDA and OFF calls were stubbed with the test fixtures.
-- Not run: live USDA or Open Food Facts calls (both hosts blocked by this
-  sandbox's network policy), the food-search Edge Function (no Deno, not
-  deployed), npm run doctor, native build.
+- Passed: npm run typecheck, npm run lint, npm test (30 suites, 343 tests),
+  npm run test:setup (7), npm run export:ios, web export.
+- Passed: Playwright walks of the web export at 390x844, with the USDA and
+  OFF calls stubbed by the test fixtures and no page errors:
+  - Demo photo scans show level pills and protein ranges.
+  - Search "chicken breast" → 150 g → 47 g protein, logged on Home.
+- Failed: npm run doctor, 1 check. This is the same React Native Directory
+  finding as before (masked-view via expo-router) and is unrelated to this work.
+- Not run:
+  - live USDA, Open Food Facts or FatSecret calls (hosts blocked by this sandbox);
+  - the three Edge Functions (no Deno, nothing deployed);
+  - a native build or real camera.
+- Research: a 7-topic workflow with independent fact-checkers ran out of
+  shared web-search budget part-way. Unconfirmed figures are marked in
+  docs/food-data.md.
 
 ## Blockers needing the owner
-A free USDA key (https://fdc.nal.usda.gov/api-key-signup) set as the Supabase
-secret USDA_API_KEY, then deploy food-search. Until then the app uses USDA's
-DEMO_KEY (development only). Earlier blockers below still apply.
+- A free USDA key (https://fdc.nal.usda.gov/api-key-signup) set as the Supabase
+  secret USDA_API_KEY, then deploy food-search. Until then the app uses USDA's
+  DEMO_KEY (development only).
+- Optional: apply for FatSecret Premier Free and set FATSECRET_CLIENT_ID and
+  FATSECRET_CLIENT_SECRET, then deploy food-verify. See the IP-allowlist note in
+  supabase/README.md.
+- Earlier blockers below still apply. The photo model needs the Anthropic key
+  and a deployed analyze-food.
 
 ## Next concrete task
 On a network that reaches the APIs, scan one real barcode and run one search
-per source to confirm the live response shapes match the fixtures; then use
-foods().bestMatch in the photo flow for packaged items (see docs/food-data.md).
+per source to confirm the live response shapes match the fixtures. Then add a
+per-item weight field to photo results (docs/tasks.md, food data follow-ups).
 
 # Previous status (modest-ramanujan v1 app)
 
