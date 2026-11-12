@@ -10,7 +10,9 @@
       "supportsTablet": false
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-splash-screen",
+      "expo-status-bar"
     ],
     "runtimeVersion": {
       "policy": "fingerprint"

@@ -65,16 +65,15 @@ behavior. JavaScript bundle export does not establish native build success.
 Authentication, backend services, payments, AI features, cloud data sync.
 
 ## Unresolved dependency advisories
-The current preparation rechecked audit and non-breaking lockfile-only remediation.
-As in the earlier foundation session, npm still reports 10 moderate dependency
-findings (0 high, 0 critical), propagated from glob and minimatch through Expo's
-CLI/fingerprint tooling and TypeScript ESLint tooling:
-- https://github.com/advisories/GHSA-3g3m-2fjr-6pw4
+The final SDK 58 patch update reduced ten moderate findings to eight, with zero
+high/critical. Current findings propagate from minimatch through Expo fingerprint
+and TypeScript ESLint build/development tooling:
 - https://github.com/advisories/GHSA-g3hv-75wg-m249
 
-npm's forced remediation proposes downgrading Expo to SDK 52. This was not applied:
-it would break the current stable SDK requirement. No unverified dependency
-overrides were added. Recheck upstream SDK-compatible fixes before release.
-The Expo-recommended ESLint 9.39.5 also emits an upstream support/deprecation
-warning; lint itself passes. Migrate when the Expo lint config supports the newer
-ESLint major. CI actions use Node 24-compatible v6 revisions.
+The earlier glob advisory (GHSA-3g3m-2fjr-6pw4) is no longer in the final audit.
+The report still proposes an incompatible Expo SDK 52 downgrade for forced
+remediation; this was not applied. No speculative overrides were added. Recheck
+upstream SDK-compatible fixes before release. See status.md for the tooling vs
+runtime assessment and actual audit evidence.
+Expo-recommended ESLint 9.39.5 emits a support/deprecation warning; lint passes.
+Migrate when Expo's lint configuration supports the newer major.

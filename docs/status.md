@@ -16,10 +16,10 @@ and Claude Code sessions. One builder per branch; review a pushed SHA or PR.
 - Inspected instructions, docs, lockfile, app/theme/routes, and existing CI.
   The home-screen scaffold and small folder structure remain; no product features
   or local persistence were implemented.
-- Verified selected versions: Expo 58.0.23, React Native 0.88.1, React 19.3.0,
-  Expo Router 58.0.30, strict TypeScript 6.0.3, Node v24.22.1/npm 11.9.0.
+- Verified selected versions: Expo 58.0.24, React Native 0.88.1, React 19.3.0,
+  Expo Router 58.0.31, strict TypeScript 6.0.3, Node v24.22.1/npm 11.9.0.
   Core versions match Expo's installed SDK compatibility map and versioned docs.
-- Added SDK-compatible expo-dev-client 58.0.18 and expo-updates 58.0.21 through
+- Added SDK-compatible expo-dev-client 58.0.19 and expo-updates 58.0.22 through
   Expo's dependency resolver. The ordinary resolver hit a proxy denial; its
   offline mode used the installed SDK's compatibility map for selection only.
   Doctor was still run normally, and its failures are recorded below.
@@ -44,17 +44,17 @@ Clean installation completed before the final checks below.
 
 | Check | Actual result |
 | --- | --- |
-| npm ci --no-audit --no-fund | Passed, exit 0; installed 783 packages from the final lockfile. ESLint 9.39.5 support/deprecation warning remains. |
+| npm ci --no-audit --no-fund | Passed, exit 0; installed 778 packages from the final lockfile. ESLint 9.39.5 support/deprecation warning remains. |
 | npm run test:setup | Passed, seven behavior tests covering release gates, branch/channel restrictions, authenticated identity, and exact production iOS submission build selection. |
 | npm run typecheck | Passed, exit 0. |
 | npm run lint | Passed, exit 0, including setup scripts. |
-| npm run export:ios | Passed, exit 0; 1152 modules, exported iOS JavaScript/assets to ignored dist/. This is not native compilation. |
+| npm run export:ios | Passed, exit 0; 1131 modules, exported iOS JavaScript/assets to ignored dist/. This is not native compilation. |
 | npm run doctor | Failed, exit 1; 18/20 passed. Exact network failures below. No check was suppressed. |
 | npx expo config --type public --json | Passed; resolved name/slug/version/scheme, iPhone setting, fingerprint runtime, and disabled updates inspected. This does not verify the server-side account link or remote schema. |
 | eas.json schema | Passed using the schema bundled with pinned EAS CLI 27.7.2. |
 | actionlint 1.7.7 | Passed workflow syntax/expression validation locally. No delivery workflow was dispatched. |
-| npm audit | Completed, exit 1; ten moderate findings, zero high/critical. See advisory assessment below. |
-| Non-force npm audit fix --package-lock-only --ignore-scripts | Completed, exit 1; same ten moderate findings remain. No forced downgrade or unverified overrides applied. |
+| npm audit | Completed, exit 1; eight moderate findings, zero high/critical after the SDK patch update. See advisory assessment below. |
+| Non-force npm audit fix --package-lock-only --ignore-scripts | Before the SDK patch correction: completed, exit 1; ten moderate findings remained. The supported SDK patches subsequently reduced this to eight. No forced downgrade or unverified overrides applied. |
 | npm run expo:project | Blocked, exit 1: EXPO_TOKEN is missing; use secure environment secrets. No authenticated metadata returned. |
 | git diff --check / local Markdown links / intended-file secret scan | Passed; no secret values printed. |
 | Native build, signing, device registration, upload, OTA publication, rollback, install, device smoke test | Not run; outside this preparation task. |
@@ -64,6 +64,22 @@ missing tsc/expo binaries; both checks were repeated after installation complete
 and passed as recorded above. An intermediate Doctor run rejected project-local
 EAS CLI; it was removed and the final Doctor result returned to network-only
 failures. These transient failures were not treated as successful checks.
+
+## CI compatibility correction
+The first PR check run for setup commit 832474e
+(https://github.com/aryanbaki/Moo-Protein-Tracker/actions/runs/43126434779)
+passed installation, guard tests, TypeScript, and lint. Doctor reached Expo services
+and passed 19/20 checks; it found nine outdated SDK 58 patch packages. CI skipped
+the export after Doctor failed. This was dependency compatibility evidence,
+separate from the restricted Codex instance's network failures.
+
+Updated Expo to ~58.0.24, then used Expo's installed compatibility resolver to
+apply the SDK 58 patches. Resolved versions include constants 58.0.16, font
+58.0.12, dev-client 58.0.19, linking 58.0.17, router 58.0.31, splash-screen
+58.0.14, status-bar 58.0.5, and updates 58.0.22. The resolver added the supported
+splash-screen/status-bar config plugins. No major framework migration or
+network-check exclusion was used. Validation results above are refreshed after
+these changes; the first run is retained here to explain the correction.
 
 ## Network and authentication blocker
 Final Doctor reports:
@@ -106,14 +122,15 @@ mutation tool is available in this session.
   Delivery remains guarded and incomplete rather than release-ready.
 
 ## Dependency advisory assessment
-Ten moderate findings propagate from glob/minimatch through Expo CLI/fingerprint
-and TypeScript ESLint tooling (GHSA-3g3m-2fjr-6pw4, GHSA-g3hv-75wg-m249).
-They concern filesystem traversal cancellation / glob-pattern denial of service
-in development/build tooling. Although npm labels Expo as a production dependency,
-these paths are tooling used during development/build/fingerprinting, not a
-confirmed exploit path through the current iPhone screen. They still matter for
-untrusted build inputs and CI. No runtime vulnerability has been demonstrated;
-this is not proof of absence. Non-breaking remediation did not remove them;
+The SDK patch update reduced ten moderate findings to eight and removed the glob
+advisory from the current report. Remaining findings propagate from minimatch
+through Expo fingerprint and TypeScript ESLint tooling (GHSA-g3hv-75wg-m249).
+They concern glob-pattern denial of service in development/build tooling.
+Although npm labels Expo as a production dependency, these paths are tooling
+used during development/build/fingerprinting, not a confirmed exploit path
+through the current iPhone screen. They still matter for untrusted build inputs
+and CI. No runtime vulnerability has been demonstrated; this is not proof of
+absence. The remaining report's
 forced remediation proposes an incompatible Expo SDK 52 downgrade. Preserve SDK
 58 and recheck upstream compatible fixes before release. ESLint's support warning
 is separate from a failing lint result. No speculative overrides were added.
