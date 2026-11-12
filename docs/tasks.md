@@ -1,7 +1,8 @@
 # Tasks
 
-Current handoff: [docs/status.md](status.md). This file retains foundation history
-and the longer backlog; historical verification below is not a fresh check.
+Current handoff: [docs/status.md](status.md). This file retains foundation history,
+the v1 milestones, and what is needed from the owner; historical verification
+below is not a fresh check.
 
 ## Completed
 - Confirmed the repository was empty; initialized main with a minimal README to
@@ -45,25 +46,71 @@ read-only repository permissions and validates future pull requests.
   all checks including Doctor 20/20 and iOS export. Local Codex network/token
   access remains blocked; account/signing setup is unverified. See status.md.
 
-## Next steps
-1. Expo token authentication and exact-project linking are now verified (owner
-   aryanbakis-team, slug moo-protein-tracker). Confirm the real iOS bundle ID next.
-   Doctor network access to exp.host/reactnative.directory still needs repair.
-2. Finish the prepared update configuration and verify Apple signing, device
-   registration, App Store Connect app/API key, and GitHub readiness gates.
-3. Build and install an internal preview or TestFlight build; smoke-test on iPhone.
-4. Agree on manual entry fields, goal controls, and calendar-day behavior.
-5. Decide backup/export/restore and timezone rules, then implement local SQLite
-   storage and migrations with meaningful logic tests.
-6. Add logging, edit/delete, user-set goals, and daily history.
-7. Replace the placeholder cow emoji and implement cow progress.
+## Direction change (v1 scope)
+The owner replaced the foundation's small scope (local-only manual protein and
+creatine gram logging, no accounts, backend, payments, or AI, static cow) with
+the v1 direction in [product.md](product.md): protein-first tracking with an
+animated SVG cow, full onboarding, photo and barcode scanning, Supabase accounts
+and sync, and a RevenueCat paywall. The older "Next steps" (agree manual entry
+fields, static cow) and the old "Deferred" list (authentication, backend,
+payments, AI, cloud sync) no longer apply. Sections above are kept as history.
+
+## Milestones
+Progress and evidence for each milestone belong in [status.md](status.md); this
+list is the plan, not a record of completion.
+
+1. **Base**: add dependencies, extend the theme, load fonts, navigation skeleton,
+   Jest setup, and rewrite product/design/architecture/tasks docs to this scope.
+2. **Cow**: SVG cow, poses, fill effect, UFO scene, confetti; a dev gallery route
+   to view every pose; icon and splash generated from the artwork.
+3. **Onboarding**: all screens, goal math with tests, reality check, creatine
+   branch, UFO loading, plan screen.
+4. **Core loop**: SQLite storage with migrations, Home, quick add, manual entry,
+   edit/delete, day/week fill, streaks, creatine check-off, with tests.
+5. **Scanner**: camera, barcode lookup, result sheet, mock analyser, Supabase
+   edge function.
+6. **Accounts and sync**: Supabase project and tables, auth screens, sync,
+   delete account.
+7. **Paywall**: RevenueCat wiring, paywall screen, scan allowance gating.
+8. **Progress and Settings**, reminders, polish, accessibility pass.
+
+Milestones 1–4 need nothing from the owner. 5–7 run on mocks until the items
+below exist.
+
+## Needed from the owner
+Not blocking the start, but nothing that depends on them can be verified first.
+- Anthropic API key, added as a Supabase secret (for photo scans). Never in the
+  repository or the app.
+- OK to create a Supabase project for Moo, and which organisation it belongs to.
+- RevenueCat account and iOS API key, plus the prices and trial length.
+- Apple Developer account, bundle identifier, and App Store Connect products.
+  Required for Sign in with Apple, purchases, and any phone build.
+- Privacy policy and terms URLs for the paywall.
+
+## Still open from the foundation
+- Confirm the real iOS bundle identifier and Apple team from authoritative
+  records; none is configured.
+- Finish the prepared update configuration and verify Apple signing, device
+  registration, App Store Connect app/API key, and GitHub readiness gates.
+- Build and install an internal preview or TestFlight build and smoke-test on an
+  iPhone. The v1 native modules and config plugins mean a new native build is
+  required; this remains a separately authorised step.
+- Doctor network access to exp.host/reactnative.directory needed repair in the
+  cloud environment when last recorded.
+- Add `npm test` to .github/workflows/checks.yml so CI runs the Jest suite.
+- Decide export format and what happens to signed-out local data on uninstall.
 
 ## Not yet verified
 Native iOS compilation, signing, installation, and on-device visual/accessibility
 behavior. JavaScript bundle export does not establish native build success.
+Also not verified: the v1 native dependency set in a native build, the real
+camera, notifications, purchases, Sign in with Apple, on-device animation and
+Reduce Motion, VoiceOver, a deployed Supabase project, and the edge function
+against the live Anthropic API.
 
 ## Deferred
-Authentication, backend services, payments, AI features, cloud data sync.
+Social features, wearables and Apple Health, Android and web as products, meal
+plans and recipes, iPad layouts. See [product.md](product.md).
 
 ## Unresolved dependency advisories
 The final SDK 58 patch update reduced ten moderate findings to eight, with zero

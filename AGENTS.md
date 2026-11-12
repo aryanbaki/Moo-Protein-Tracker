@@ -17,10 +17,22 @@ Read this file before changing Moo. Claude Code must follow these same instructi
   command output rather than treating earlier notes as fresh validation.
 
 ## Product and scope
-- Moo is an iPhone app for daily protein and creatine tracking with a cow mascot.
+- Moo is an iPhone protein tracker with a cow mascot that fills as the daily
+  goal is reached. Calories, carbs, and fat ride along; creatine is an optional
+  daily check-off with a reminder. docs/product.md is the current direction and
+  replaces the earlier local-only scope.
+- In scope: full onboarding with calculated, editable goals; photo, barcode, and
+  manual food logging; Supabase accounts and sync; a RevenueCat paywall; photo
+  analysis through a Supabase Edge Function that calls the Anthropic API.
 - Build small, reviewable changes and preserve existing work.
-- Do not add authentication, a backend, payments, or AI features.
-- Do not infer supplement goals or provide medical dosing advice; goals are user-set.
+- Follow the honesty rules in docs/product.md: no invented statistics or
+  testimonials, scan results are labelled estimates and stay editable, and
+  prices come from the store configuration rather than being hard-coded.
+- No medical dosing advice. Creatine copy is informational only, with a "not
+  medical advice" line. Suggested goals stay editable, and the goal guard rails
+  (protein, calorie floor, weight-change pace) must not be removed or bypassed.
+- Deferred: social features, wearables, Android and web as products, meal plans.
+  Web must still run because cloud sessions use it to check the app.
 
 ## Stack and structure
 - Use the stable Expo SDK selected for this foundation, React Native, TypeScript
@@ -59,15 +71,19 @@ Read this file before changing Moo. Claude Code must follow these same instructi
 - Use Node.js 24 LTS (.nvmrc) and npm; check node --version and npm --version.
 - Run npm ci on a fresh checkout. Do not regenerate the lockfile just to hide
   an installation failure.
-- Run npm run test:setup, npm run typecheck, npm run lint, npm run doctor,
-  and npm run export:ios for setup/app changes before opening or updating a PR.
+- Run npm run test:setup, npm run typecheck, npm run lint, npm test,
+  npm run doctor, and npm run export:ios for setup/app changes before opening or
+  updating a PR.
 - For app changes, also run npx expo export --platform ios to check JavaScript
   bundling. This is not a native build and does not prove iPhone behavior.
 - EAS CLI is pinned to 27.7.2; use npx --yes eas-cli@27.7.2. Do not add it
   as a project dependency (Expo Doctor rejects that installation).
 - npm start runs Metro; npm run ios needs an iOS simulator environment and is
   not the cloud iPhone build path. test:setup exercises release guard behavior;
-  there is no product logic test suite yet.
+  npm test runs the Jest product logic suite (tests sit next to the code).
+- Supabase secrets (the Anthropic API key, the service-role key) live in
+  Supabase, never in the repository, .env.example, an EXPO_PUBLIC_ variable, or
+  the app bundle. Only the public values named in .env.example go in the app.
 - For documentation-only work, verify links, facts, and git diff --check; record
   any additional checks actually run.
 - Fix failures where possible and report exact unresolved limitations honestly.
