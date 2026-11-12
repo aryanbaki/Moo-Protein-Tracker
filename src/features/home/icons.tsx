@@ -3,7 +3,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { colors } from '../../theme';
 
-export type IconName = 'home' | 'chart' | 'gear' | 'camera' | 'barcode' | 'pencil' | 'bolt' | 'plus' | 'check' | 'flame';
+export type IconName = 'home' | 'chart' | 'gear' | 'camera' | 'barcode' | 'pencil' | 'bolt' | 'plus' | 'check' | 'flame' | 'search';
 
 export interface IconProps {
   name: IconName;
@@ -58,6 +58,12 @@ export function Icon({ name, size = 24, color = colors.text, strokeWidth = 2.2 }
         </>
       ) : null}
       {name === 'bolt' ? <Path d="M13 3 5.5 13.2H11l-1 7.8 7.5-10.2H12L13 3Z" {...line} /> : null}
+      {name === 'search' ? (
+        <>
+          <Circle cx={10.5} cy={10.5} r={6} {...line} />
+          <Path d="M15 15l5 5" {...line} />
+        </>
+      ) : null}
       {name === 'plus' ? <Path d="M12 5v14M5 12h14" {...line} /> : null}
       {name === 'check' ? <Path d="M5 12.6l4.4 4.4L19 7.4" {...line} /> : null}
       {name === 'flame' ? (

@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import { canPhotoScan, FREE_PHOTO_SCANS, presentPaywall, useBilling } from '../../features/billing';
 import { useLog } from '../../features/log';
 import { analyzePhoto, ScanError } from '../../features/scan/analyze';
-import { BarcodeError, lookupBarcode } from '../../features/scan/barcode';
+import { BarcodeError, lookupBarcodeAnySource } from '../../features/scan/barcode';
 import { scansLeftLabel, scansLeftSpoken, type ProblemCode } from '../../features/scan/copy';
 import { entryFromItems, toEditable, type EditableItem } from '../../features/scan/totals';
 import { CameraStage } from '../../features/scan/ui/CameraStage';
@@ -73,7 +73,7 @@ export default function ScanScreen() {
     const id = ++job.current;
     setPhase({ k: 'analyzing', kind: 'barcode' });
     try {
-      const found = await lookupBarcode(code);
+      const found = await lookupBarcodeAnySource(code);
       if (id !== job.current) return;
       if (found.status === 'found') setPhase({ k: 'result', source: 'barcode', items: toEditable(found.result.items), mock: false });
       else setPhase({ k: 'problem', code: found.status });

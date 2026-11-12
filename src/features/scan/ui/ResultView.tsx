@@ -15,6 +15,8 @@ export interface ResultViewProps {
   onChange: (items: EditableItem[]) => void;
   onSave: () => void;
   onRetake: () => void;
+  /** Overrides the secondary button label (defaults to Retake / Rescan). */
+  retakeLabel?: string;
   onClose: () => void;
 }
 
@@ -24,7 +26,7 @@ function fmt(n: number): string {
   return String(Math.round(n));
 }
 
-export function ResultView({ items, source, mock, photoUri, saving, onChange, onSave, onRetake, onClose }: ResultViewProps) {
+export function ResultView({ items, source, mock, photoUri, saving, onChange, onSave, onRetake, retakeLabel, onClose }: ResultViewProps) {
   const totals = totalsOf(items);
   const unsure = items.length > 0 && lowestConfidence(items) < LOW_CONFIDENCE;
   const patch = (key: string, p: Partial<EditableItem>) => onChange(items.map((i) => (i.key === key ? { ...i, ...p } : i)));
@@ -35,7 +37,7 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
       footer={
         <>
           <Button title="Add" onPress={onSave} disabled={items.length === 0 || saving} accessibilityLabel={`Add to today: ${fmt(totals.proteinG)} grams of protein, ${fmt(totals.calories)} calories`} />
-          <Button title={source === 'photo' ? 'Retake' : 'Rescan'} variant="ghost" onPress={onRetake} style={{ minHeight: 44 }} />
+          <Button title={retakeLabel ?? (source === 'photo' ? 'Retake' : 'Rescan')} variant="ghost" onPress={onRetake} style={{ minHeight: 44 }} />
         </>
       }
     >
@@ -119,7 +121,7 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
         );
       })}
 
-      {source === 'barcode' ? <AppText variant="small" center>Open Food Facts</AppText> : null}
+      {source === 'barcode' ? <AppText variant="small" center>Open Food Facts · USDA</AppText> : null}
     </Screen>
   );
 }

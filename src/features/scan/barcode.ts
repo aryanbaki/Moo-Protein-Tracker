@@ -1,7 +1,8 @@
-/** Barcode lookup against Open Food Facts. Always free; no account needed. */
+/** Barcode lookup. Always free; no account needed. `lookupBarcodeAnySource` adds the USDA fallback. */
 import { Platform } from 'react-native';
 
 import type { ScanResult } from '../../types';
+import { foodToScannedItem, FoodLookupError, foods } from '../foods';
 import { clampNumber } from './sanitize';
 
 export type BarcodeLookup =
@@ -118,4 +119,20 @@ export async function lookupBarcode(code: string, fetchImpl: typeof fetch = fetc
     throw new BarcodeError('server');
   }
   return mapOpenFoodFactsProduct(json);
+}
+
+/**
+ * Barcode lookup across every free source (Open Food Facts, then USDA Branded
+ * by GTIN) via the shared food service. Same result and error shape as
+ * `lookupBarcode`, so the scan screen handles both identically.
+ */
+export async function lookupBarcodeAnySource(code: string): Promise<BarcodeLookup> {
+  try {
+    const r = await foods().lookupBarcode(code);
+    if (r.status !== 'found') return r;
+    return { status: 'found', result: { source: 'barcode', items: [foodToScannedItem(r.food)] } };
+  } catch (e) {
+    const c = e instanceof FoodLookupError ? e.code : 'server';
+    throw new BarcodeError(c === 'invalid' || c === 'offline' ? c : 'server');
+  }
 }

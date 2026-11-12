@@ -158,6 +158,7 @@ with placeholder internals.
 | src/features/log | `useLog`: `init`, `addEntry`, `updateEntry`, `deleteEntry`, `setCreatineTaken`, `logWeight`, `clearAll`; pure helpers `totalsForDay`, `currentStreak` |
 | src/features/goals | pure goal calculation (`computeGoals`) and guard rails (`checkGoals`) returning a verdict per goal: `ok`, `low`, `high`, or `blocked` |
 | src/features/scan | photo analysis and barcode lookup returning a `ScanResult`; a mock analyser for use without keys |
+| src/features/foods | food database service: Open Food Facts + USDA FoodData Central barcode chain, text search, best-match for photo guesses (see docs/food-data.md) |
 | src/features/billing | `useBilling` (`isPremium`, `photoScansUsed`), `FREE_PHOTO_SCANS` (3), `canPhotoScan`, `presentPaywall(reason)` |
 | src/features/auth | `useAuth`: `ready`, `user`, `backendConfigured`, `signOut` |
 | src/features/reminders | `requestNotificationPermission`, `syncReminders` (re-schedules local notifications from the profile; safe to call repeatedly) |
@@ -268,6 +269,7 @@ Present in the tree (code written, runs without any account or key):
 | Creatine helpers | src/features/creatine (with tests) | |
 | Reminders | src/features/reminders (local notifications; schedule logic tested) | No-op on web or without permission |
 | Scan client | src/app/scan/, src/features/scan (photo analysis client, Open Food Facts barcode lookup, mock analyser, sanitising, tests) | Uses the mock analyser until Supabase is configured |
+| Food database | src/features/foods, src/app/food-search/, supabase/functions/food-search | Barcodes fall back to USDA Branded; search uses USDA DEMO_KEY until `food-search` is deployed with USDA_API_KEY |
 | Accounts client | src/features/auth, src/app/auth/ | Local-only (never signed in) until Supabase is configured |
 | Sync client | src/features/sync | Inactive until signed in |
 | Paywall and billing client | src/features/billing, src/app/paywall.tsx | Preview mode with no prices until a RevenueCat key and products exist |

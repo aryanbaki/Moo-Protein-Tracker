@@ -48,6 +48,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="entry" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="food-search" options={{ presentation: 'modal' }} />
             <Stack.Screen name="settings" />
           </Stack.Protected>
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />

@@ -1,6 +1,43 @@
 # Current project status
 
 Last verified: November 12, 2026 (UTC). Repository: aryanbaki/Moo-Protein-Tracker.
+Branch: claude/bold-noether-ftf0zs (started from claude/modest-ramanujan-n495q3).
+
+## Food database work completed in this task
+Researched free food-data sources (docs/food-data.md): MyFitnessPal has no
+public API; Moo now uses Open Food Facts (no key) and USDA FoodData Central
+(free key, public domain). Added src/features/foods (provider mappers, merged
+and ranked search, barcode chain OFF → USDA Branded by GTIN, bestMatch hook
+for photo guesses, session cache, OFF search rate guard), a "Search foods"
+screen (src/app/food-search, new "+" menu option), the food-search Edge
+Function that keeps USDA_API_KEY in Supabase, credits in Settings → About.
+The barcode scanner now uses the chain; analyze.ts (photo) was not changed.
+
+## Fresh checks for this task (Node v24.22.1)
+- Passed: npm run typecheck, npm run lint, npm test (22 suites, 279 tests;
+  23 new in src/features/foods/foods.test.ts), npm run test:setup (7),
+  npm run export:ios, web export.
+- Passed: Playwright walk of the web export at 390x844: Search foods → type
+  "whey" → results from both sources with source labels → pick → result sheet;
+  no page errors. The USDA and OFF calls were stubbed with the test fixtures.
+- Not run: live USDA or Open Food Facts calls (both hosts blocked by this
+  sandbox's network policy), the food-search Edge Function (no Deno, not
+  deployed), npm run doctor, native build.
+
+## Blockers needing the owner
+A free USDA key (https://fdc.nal.usda.gov/api-key-signup) set as the Supabase
+secret USDA_API_KEY, then deploy food-search. Until then the app uses USDA's
+DEMO_KEY (development only). Earlier blockers below still apply.
+
+## Next concrete task
+On a network that reaches the APIs, scan one real barcode and run one search
+per source to confirm the live response shapes match the fixtures; then use
+foods().bestMatch in the photo flow for packaged items (see docs/food-data.md).
+
+# Previous status (modest-ramanujan v1 app)
+
+
+Last verified: November 12, 2026 (UTC). Repository: aryanbaki/Moo-Protein-Tracker.
 Branch: claude/modest-ramanujan-n495q3 (started from codex/moo-foundation).
 PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/2
 

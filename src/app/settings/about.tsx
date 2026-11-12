@@ -35,7 +35,8 @@ export default function AboutSettings() {
       {error ? <AppText variant="caption" center accessibilityLiveRegion="polite">{error}</AppText> : null}
 
       <Group>
-        <Row label="Barcode data" value="Open Food Facts · ODbL" />
+        <Row label="Food data" value="Open Food Facts · ODbL" />
+        <Row label="Food data" value="USDA FoodData Central · public domain" />
       </Group>
 
       {__DEV__ ? (
