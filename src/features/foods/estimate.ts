@@ -250,7 +250,8 @@ export async function estimateItem(item: CleanItem, deps: EstimateDeps): Promise
       cook = 'cooked';
       notes.push('assumed_cooked');
     }
-    const ref = deps.reference(query, cook);
+    // The table describes single foods; a dish that merely contains one (a chicken salad) must not borrow its density.
+    const ref = h.kind === 'mixed_dish' ? null : deps.reference(query, cook);
     if (ref) {
       const est = fromDensity(item, ref.per100g, 'reference_density', ref, ref.converted ? [...notes, 'cook_converted'] : notes);
       if (est) return est;

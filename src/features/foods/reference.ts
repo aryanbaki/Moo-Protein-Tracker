@@ -29,6 +29,17 @@ export interface ReferenceFood {
   cookedYield?: number;
   /** A typical portion, for when the photo gives no weight. */
   typicalPortion?: { label: string; grams: number };
+  /** Words that mean the photo is something else ("almond milk" is not almonds or milk). */
+  exclude?: string[];
+}
+
+/** Singular form: berries → berry, potatoes → potato, dishes → dish, whites → white, eggs → egg. */
+function singular(w: string): string {
+  if (w.length <= 3) return w;
+  if (w.endsWith('ies')) return `${w.slice(0, -3)}y`;
+  if (/(ch|sh|x|ss|o)es$/.test(w)) return w.slice(0, -2);
+  if (w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
 }
 
 function words(s: string): string[] {
@@ -37,7 +48,7 @@ function words(s: string): string[] {
     .replace(/[^a-z0-9 ]+/g, ' ')
     .split(/\s+/)
     .filter((w) => w.length > 1)
-    .map((w) => (w.length > 3 && w.endsWith('es') && !w.endsWith('ses') ? w.slice(0, -2) : w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w));
+    .map(singular);
 }
 
 /** Words that describe preparation, not the food; they never decide a match. */
@@ -71,6 +82,8 @@ export function matchReference(query: string, cookState: CookState = 'unknown', 
   if (q.size === 0) return null;
   let best: { food: ReferenceFood; score: number } | null = null;
   for (const food of table) {
+    // Whole words only (plurals folded), so "peach" does not trip "pea".
+    if (food.exclude?.some((w) => { const ws = words(w); return ws.length > 0 && ws.every((x) => q.has(x)); })) continue;
     for (const alias of food.aliases) {
       const core = words(alias).filter((w) => !PREP.has(w));
       if (core.length === 0 || !core.every((w) => q.has(w))) continue;
