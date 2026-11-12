@@ -31,6 +31,8 @@ export interface ReferenceFood {
   typicalPortion?: { label: string; grams: number };
   /** Words that mean the photo is something else ("almond milk" is not almonds or milk). */
   exclude?: string[];
+  /** When USDA has several records for the same food that disagree (salted vs no-salt tuna), their protein spread. */
+  proteinRange100g?: { lowG: number; highG: number };
 }
 
 /** Singular form: berries → berry, potatoes → potato, dishes → dish, whites → white, eggs → egg. */
@@ -60,6 +62,13 @@ export interface ReferenceMatch {
   per100g: Macros;
   /** True when a raw↔cooked conversion was applied. */
   converted: boolean;
+  /** Protein per 100 g low/high in the requested state, when USDA's own records disagree. */
+  proteinRange100g?: { lowG: number; highG: number };
+}
+
+function scaleRange(food: ReferenceFood, factor: number): Pick<ReferenceMatch, 'proteinRange100g'> {
+  const r = food.proteinRange100g;
+  return r ? { proteinRange100g: { lowG: Math.round(r.lowG * factor * 100) / 100, highG: Math.round(r.highG * factor * 100) / 100 } } : {};
 }
 
 function convert(m: Macros, factor: number): Macros {
@@ -97,10 +106,10 @@ export function matchReference(query: string, cookState: CookState = 'unknown', 
   const { food } = best;
   // Convert when the photo state differs from the table state and the yield is known.
   if (food.cookedYield && food.state === 'cooked' && cookState === 'raw') {
-    return { food, per100g: convert(food.per100g, food.cookedYield), converted: true };
+    return { food, per100g: convert(food.per100g, food.cookedYield), converted: true, ...scaleRange(food, food.cookedYield) };
   }
   if (food.cookedYield && food.state === 'raw' && cookState === 'cooked') {
-    return { food, per100g: convert(food.per100g, 1 / food.cookedYield), converted: true };
+    return { food, per100g: convert(food.per100g, 1 / food.cookedYield), converted: true, ...scaleRange(food, 1 / food.cookedYield) };
   }
-  return { food, per100g: food.per100g, converted: false };
+  return { food, per100g: food.per100g, converted: false, ...scaleRange(food, 1) };
 }

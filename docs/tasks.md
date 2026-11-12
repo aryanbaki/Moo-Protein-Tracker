@@ -106,7 +106,9 @@ Not blocking the start, but nothing that depends on them can be verified first.
 ## Food data follow-ups (docs/food-data.md §6 and §9)
 - Check one barcode and one search per source on a network that reaches
   Open Food Facts, USDA and (if enabled) FatSecret; confirm the fixtures.
-- Per-item weight field on photo results ("I weighed it") and portion chips.
+- Per-item weight field on photo results ("I weighed it"), portion chips and a raw/cooked toggle.
+- Second label reader on the device (Apple Vision in a local Expo module) to cross-check Claude's label read.
+- Camera privacy: microphonePermission false, a clearer camera purpose string, and consent before the first photo goes to Anthropic.
 - Ask the analyser which label column it read and per-field legibility; ask
   for a re-shoot when a label's macros don't add up.
 - Read Open Food Facts v3.5+ per-source nutrition and `carbohydrates-total`.

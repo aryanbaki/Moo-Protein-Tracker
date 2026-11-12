@@ -101,6 +101,30 @@ export function normalizeCode(input: string): string | null {
   return /^\d{8}$|^\d{12,14}$/.test(digits) ? digits : null;
 }
 
+/**
+ * GS1 mod-10 check digit for EAN-13, UPC-A (12) and GTIN-14. A wrong check
+ * digit means the camera misread the code. 8-digit codes are let through:
+ * they may be UPC-E, whose check digit is computed on the expanded form.
+ */
+export function checkDigitOk(code: string): boolean {
+  if (!/^\d{12,14}$/.test(code)) return /^\d{8}$/.test(code);
+  const digits = code.split('').map(Number);
+  const check = digits.pop()!;
+  let sum = 0;
+  for (let i = 0; i < digits.length; i++) sum += digits[digits.length - 1 - i]! * (i % 2 === 0 ? 3 : 1);
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+/**
+ * The form USDA stores in `gtinUpc`: iPhones report UPC-A as a 13-digit EAN
+ * with a leading 0, and GTIN-14s are often zero-padded; USDA mostly keeps 12.
+ */
+export function usdaGtinQuery(code: string): string {
+  let c = code;
+  while (c.length > 12 && c.startsWith('0')) c = c.slice(1);
+  return c;
+}
+
 /** Barcodes are equal when they match ignoring leading zeros (UPC-A 12 vs EAN-13 0-prefixed vs GTIN-14). */
 export function sameBarcode(a: string | null, b: string | null): boolean {
   if (!a || !b) return false;

@@ -30,14 +30,14 @@ export const REFERENCE_FOODS: ReferenceFood[] = [
   { key: 'salmon-atlantic-farmed-cooked', name: 'Salmon (Atlantic, farmed), cooked', aliases: ['salmon'], state: 'cooked', per100g: { proteinG: 22.1, calories: 206, carbsG: 0, fatG: 12.35 }, fdcId: 175168, cookedYield: 0.924, typicalPortion: { label: '½ fillet', grams: 178 }, exclude: ['smoked', 'canned', 'roe'] },
   // Fish, salmon, sockeye, cooked, dry heat
   { key: 'salmon-sockeye-cooked', name: 'Sockeye salmon, cooked', aliases: ['sockeye salmon', 'wild salmon'], state: 'cooked', per100g: { proteinG: 26.48, calories: 156, carbsG: 0, fatG: 5.57 }, fdcId: 173692, typicalPortion: { label: '½ fillet', grams: 155 } },
-  // Fish, tuna, light, canned in water, drained solids (Includes foods for USDA's Food Distribution Program)
-  { key: 'tuna-light-canned-water', name: 'Tuna, light, canned in water, drained', aliases: ['canned tuna', 'tinned tuna', 'tuna in water'], state: 'as_sold', per100g: { proteinG: 19.44, calories: 86, carbsG: 0, fatG: 0.96 }, fdcId: 173709, typicalPortion: { label: '1 can', grams: 165 }, exclude: ['oil', 'salad', 'steak', 'sushi'] },
+  // Fish, tuna, light, canned in water, drained solids (Includes foods for USDA's Food Distribution Program); range includes 171986 Fish, tuna, light, canned in water, without salt, drained solids
+  { key: 'tuna-light-canned-water', name: 'Tuna, light, canned in water, drained', aliases: ['canned tuna', 'tinned tuna', 'tuna in water'], state: 'as_sold', per100g: { proteinG: 19.44, calories: 86, carbsG: 0, fatG: 0.96 }, fdcId: 173709, typicalPortion: { label: '1 can', grams: 165 }, proteinRange100g: { lowG: 19.44, highG: 25.51 }, exclude: ['oil', 'salad', 'steak', 'sushi'] },
   // Fish, cod, Atlantic, cooked, dry heat
   { key: 'cod-atlantic-cooked', name: 'Cod, cooked', aliases: ['cod'], state: 'cooked', per100g: { proteinG: 22.83, calories: 105, carbsG: 0, fatG: 0.86 }, fdcId: 171956, cookedYield: 0.78, typicalPortion: { label: '1 fillet', grams: 180 }, exclude: ['battered', 'breaded'] },
   // Fish, tilapia, cooked, dry heat
   { key: 'tilapia-cooked', name: 'Tilapia, cooked', aliases: ['tilapia'], state: 'cooked', per100g: { proteinG: 26.15, calories: 128, carbsG: 0, fatG: 2.65 }, fdcId: 175177, cookedYield: 0.768, typicalPortion: { label: '1 fillet', grams: 87 }, exclude: ['battered', 'breaded'] },
-  // Crustaceans, shrimp, mixed species, cooked, moist heat (may contain additives to retain moisture)
-  { key: 'shrimp-cooked', name: 'Shrimp, cooked', aliases: ['shrimp', 'prawn'], state: 'cooked', per100g: { proteinG: 22.78, calories: 119, carbsG: 1.52, fatG: 1.7 }, fdcId: 171971, typicalPortion: { label: '3 oz', grams: 85 }, exclude: ['breaded', 'tempura', 'battered', 'popcorn'] },
+  // Crustaceans, shrimp, cooked
+  { key: 'shrimp-cooked', name: 'Shrimp, cooked', aliases: ['shrimp', 'prawn'], state: 'cooked', per100g: { proteinG: 23.98, calories: 99, carbsG: 0.2, fatG: 0.28 }, fdcId: 175180, cookedYield: 0.838, typicalPortion: { label: '3 oz', grams: 85 }, exclude: ['breaded', 'tempura', 'battered', 'popcorn'] },
   // Egg, whole, cooked, hard-boiled
   { key: 'egg-hard-boiled', name: 'Egg, hard-boiled', aliases: ['egg', 'hard boiled egg'], state: 'cooked', per100g: { proteinG: 12.58, calories: 155, carbsG: 1.12, fatG: 10.61 }, fdcId: 173424, typicalPortion: { label: '1 large', grams: 50 }, exclude: ['noodle', 'substitute', 'plant', 'eggplant', 'nog', 'roll'] },
   // Egg, whole, cooked, scrambled

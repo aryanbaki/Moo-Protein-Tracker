@@ -180,13 +180,24 @@ How the analyser's own protein guess is used:
 Database lookups during a scan time out after 4 s and fall through to the next
 route; the estimator never throws.
 
+Barcodes are checked before any lookup:
+
+- **Check digit.** A scanned code with a wrong GS1 check digit is a misread and is rejected before any API call. 8-digit codes are let through, because they may be UPC-E.
+- **USDA form.** iPhones report UPC-A as a 13-digit EAN with a leading 0, while USDA stores 12 digits. The USDA query drops leading zeros, and the match ignores them.
+
 What would improve accuracy next, from the research:
 
 - Make the weight one tap away: portion chips, or an "I weighed it" field. The grams field already exists for database foods, and per-item grams for photo items is next.
 - Ask for an overhead shot plus an angled one, with a hand or fork for scale.
 - Ask the model which label column it read and whether each field was legible.
 - Ask for a re-shoot when the label's macros don't add up.
-- Optionally run on-device OCR (Apple Vision) before the server call.
+- Add a second, independent label reader on the device. Apple Vision (`VNRecognizeTextRequest`, or `RecognizeDocumentsRequest` on iOS 26+) would run in a small local Expo module, with a pure TypeScript parser for the protein row and serving size. When the on-device read and Claude's read agree, the label photo becomes verified; when they disagree, the app shows both and asks.
+  - Research advised against ML Kit and VisionCamera OCR plugins for this iPhone-only app, because they add Google pods and their maintenance is stale.
+- Add a raw/cooked toggle on photo results. The wrong state alone costs −27% to +39% of protein for meat, and 2.3–2.7× for legumes.
+- Privacy items for the app's owner of `app.json` and the scan flow:
+  - set `microphonePermission: false` on the expo-camera and image-picker plugins;
+  - mention barcodes, labels and meals in the camera purpose string;
+  - add a one-time consent sheet before the first photo goes to Anthropic (App Store guideline 5.1.2(i)).
 
 ## 7. The bundled reference table (`reference-data.ts`)
 
@@ -196,7 +207,9 @@ The table was generated, not hand-typed:
 - **Values.** Each row takes nutrients 1003, 1008, 1005 and 1004 from the SR record named in its comment.
 - **Portions.** Typical portions are that record's own USDA household measures.
 - **Yields.** `cookedYield` = raw-record protein ÷ cooked-record protein, since protein is conserved in cooking. This reproduces USDA's raw chicken breast (22.5 g) from the roasted value.
-- **Independent check.** Two separate web lookups agreed with the generated values for all eight foods they completed (chicken breast and thigh, 85% ground beef, sirloin, pork tenderloin, turkey breast, salmon, canned tuna).
+- **Independent checks.** Two separate web lookups agreed with the generated values for all eight foods they completed (chicken breast and thigh, 85% ground beef, sirloin, pork tenderloin, turkey breast, salmon, canned tuna). A third agent read USDA's SR table from a different copy (the CRAN package NutrienTrackeR) and matched every row it shared with the table.
+- **Shrimp** uses USDA's plain "Crustaceans, shrimp, cooked" record (23.98 g), not the mixed-species record with moisture additives.
+- **Disagreeing records.** Where USDA's own records for a food disagree, the row carries a protein range that widens photo estimates. Canned light tuna in water is 19.44 g salted vs 25.51 g no-salt.
 - **Left out:** SR's "whey protein powder isolate" (58 g protein with 29 g carbohydrate, not representative; powders come from their label) and "chopped and formed" jerky.
 - **Matching.** Every core word of an alias must appear; preparation words never decide a match; plurals are folded. Exclusion words keep out look-alikes such as almond milk, nuggets, egg noodles and fried rice.
 
