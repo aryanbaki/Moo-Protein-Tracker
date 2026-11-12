@@ -1,5 +1,46 @@
 # Current project status
 
+Last verified: November 12, 2026, 15:40 UTC. Branch: claude/modest-ramanujan-n495q3.
+PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/2
+
+## Round 2 completed in this task
+- Text cut across onboarding, home, entry, scan, paywall, sign-in, progress and
+  settings (titles only, no subtitles; speech bubbles only on the splash and the
+  goal reality check). Onboarding merged sex + birth year and creatine dose +
+  reminder. The add button moved into an icon-only tab bar.
+- Mascot split into a rig (src/mascot/rig), five skins (classic, blob, sticker,
+  derpy, attitude) and about 40 declarative animations that play on any skin.
+  Cow keeps its existing props. Cow Lab at /dev/lab (moves, compare, fill, UFO,
+  line-up, tour). The owner has not yet chosen a skin; classic remains default.
+- Merged the food database work from claude/bold-noether-ftf0zs (PR #3): Open
+  Food Facts + USDA search, cross-checking, protein-density table. See
+  docs/food-data.md and that session's notes below.
+
+## Fresh checks on the merged tree (Node v24.22.1)
+- Passed: npm run typecheck, npm run lint, npm test (31 suites, 393 tests),
+  npm run export:ios, web export.
+- Passed: browser smoke at 390x844 with no page or console errors: welcome,
+  first question, home, add sheet, quick add with fill view, food search, scan
+  fallback, progress, settings, paywall; Cow Lab tours for all five skins and
+  the compare view.
+- Not run: npm run doctor and npm run test:setup in this pass (see PR checks),
+  native build, device behaviour, live Supabase or food APIs from this sandbox.
+
+## Known weak spots
+No skin has arms, so wave, flex, cheer and facepalm use a front leg; lick lips
+is weak (static tongue); entrance/exit animations fade at the frame edge rather
+than clip. Owner blockers from round 1 are unchanged (Anthropic key, Supabase
+project, RevenueCat, Apple bundle ID, legal URLs).
+
+## Next concrete task
+Owner picks a skin and animations. Then make it the default, remove the other
+skins, regenerate icon and splash, add arms to the chosen skin, and assign
+animations to app moments.
+
+The sections below are earlier status entries, newest first.
+
+# Earlier status: v1 and food data
+
 Last verified: November 12, 2026 (UTC). Repository: aryanbaki/Moo-Protein-Tracker.
 Branch: claude/bold-noether-ftf0zs (started from claude/modest-ramanujan-n495q3).
 
