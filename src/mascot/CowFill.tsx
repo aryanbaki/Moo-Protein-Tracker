@@ -2,7 +2,7 @@
  * The see-through "fill" view: a pale cow silhouette with liquid rising from the
  * hooves to `progress`, clipped to the cow's outline, with a gently rolling surface.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -17,25 +17,24 @@ import Animated, {
 import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 
 import { colors } from '../theme';
-import { ghostFace, silhouette } from './art';
-import type { Frame } from './Layer';
+import type { Frame } from './rig/Layer';
+import type { CowSkin } from './rig/types';
+import classic from './skins/classic';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const GHOST_LINE = '#C9C4B4';
 const TWO_PI = Math.PI * 2;
 
-/** Vertical extent of the liquid in art units (hooves .. horn tips). */
-const RANGE = { full: { top: 36, bottom: 242 }, head: { top: 36, bottom: 156 } } as const;
 
 export function clampProgress(p: number | undefined): number {
   if (p == null || Number.isNaN(p)) return 0;
   return Math.max(0, Math.min(1, p));
 }
 
-/** Surface height (art units) for a progress value. */
-export function levelFor(progress: number | undefined, headOnly = false): number {
-  const { top, bottom } = headOnly ? RANGE.head : RANGE.full;
+/** Surface height (viewBox units) for a progress value. */
+export function levelFor(progress: number | undefined, headOnly = false, skin: CowSkin = classic): number {
+  const { top, bottom } = headOnly ? skin.headFillRange : skin.fillRange;
   const p = clampProgress(progress);
   if (p <= 0) return bottom + 14;
   if (p >= 1) return top - 14;
@@ -55,6 +54,7 @@ function wavePath(level: number, phase: number, amp: number, length: number, x0:
 
 interface Props {
   frame: Frame;
+  skin: CowSkin;
   progress?: number;
   /** Whether the fill view is currently the visible one. */
   shown: boolean;
@@ -63,11 +63,11 @@ interface Props {
   reduced: boolean;
 }
 
-export const CowFill = memo(function CowFill({ frame, progress, shown, color = colors.fill, headOnly = false, reduced }: Props) {
+export const CowFill = memo(function CowFill({ frame, skin, progress, shown, color = colors.fill, headOnly = false, reduced }: Props) {
   const { vb, w, h, uid } = frame;
-  const range = headOnly ? RANGE.head : RANGE.full;
+  const range = headOnly ? skin.headFillRange : skin.fillRange;
   const empty = range.bottom + 14;
-  const target = levelFor(progress, headOnly);
+  const target = levelFor(progress, headOnly, skin);
 
   const level = useSharedValue(shown ? target : empty);
   const phase = useSharedValue(0);
@@ -113,8 +113,8 @@ export const CowFill = memo(function CowFill({ frame, progress, shown, color = c
     d: wavePath(level.value, phase.value, amp, 110, x0, x1, floor),
   }));
 
-  const outline = useMemo(() => silhouette(headOnly), [headOnly]);
-  const face = useMemo(() => ghostFace(), []);
+  const outline = headOnly ? skin.headSilhouette : skin.silhouette;
+  const face = skin.ghostFace;
   const clipId = `${uid}-sil`;
 
   return (

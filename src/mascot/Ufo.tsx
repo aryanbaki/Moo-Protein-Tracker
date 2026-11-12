@@ -21,11 +21,14 @@ import Svg, { Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg
 import { colors } from '../theme';
 import { art } from './art';
 import { Cow } from './Cow';
+import { getSkin } from './skins';
 
 export interface UfoSceneProps {
   size?: number;
   /** When true the beam is on and the cow is lifted and slowly spinning. */
   active?: boolean;
+  /** Which cow gets abducted (skin id; defaults to the app's cow). */
+  skin?: string;
 }
 
 const SAUCER_W = 200;
@@ -99,7 +102,7 @@ function Saucer({ width, on, reduced }: { width: number; on: SharedValue<number>
   );
 }
 
-export function UfoScene({ size = 280, active = false }: UfoSceneProps) {
+export function UfoScene({ size = 280, active = false, skin }: UfoSceneProps) {
   const reduced = useReducedMotion();
   const rawId = useId();
   const gid = useMemo(() => `beam${rawId.replace(/[^a-zA-Z0-9]/g, '')}`, [rawId]);
@@ -109,7 +112,8 @@ export function UfoScene({ size = 280, active = false }: UfoSceneProps) {
   const saucerW = W * 0.74;
   const saucerH = (saucerW * SAUCER_H) / SAUCER_W;
   const cowW = W * 0.5;
-  const cowH = cowW * 0.8;
+  const box = getSkin(skin).viewBox;
+  const cowH = (cowW * box.h) / box.w;
   const groundY = H - W * 0.06;
   const beamTop = saucerH * 0.9;
   const lift = -(groundY - cowH - (beamTop + W * 0.16));
@@ -212,7 +216,7 @@ export function UfoScene({ size = 280, active = false }: UfoSceneProps) {
       />
 
       <Animated.View style={[{ position: 'absolute', left: (W - cowW) / 2, top: groundY - cowH, width: cowW, height: cowH }, cowStyle]}>
-        <Cow size={cowW} pose={active ? 'abducted' : 'idle'} />
+        <Cow size={cowW} pose={active ? 'abducted' : 'idle'} skin={skin} />
       </Animated.View>
 
       <Animated.View style={[{ position: 'absolute', left: (W - saucerW) / 2, top: 0 }, saucerStyle]}>
