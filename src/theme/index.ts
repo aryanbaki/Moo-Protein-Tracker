@@ -19,7 +19,7 @@ export const colors = {
   fill: '#6FB85C',
   fillDeep: '#4C9A3D',
   good: '#3E9B4F',
-  bad: '#D9534F',
+  bad: '#C13B37',
   warning: '#E8A33D',
   calories: '#F08A4B',
   carbs: '#E3B341',
