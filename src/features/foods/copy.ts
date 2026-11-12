@@ -7,6 +7,7 @@ import type { FoodItem, FoodProvider } from './types';
 export const PROVIDER_NAME: Record<FoodProvider, string> = {
   usda: 'USDA',
   openfoodfacts: 'Open Food Facts',
+  fatsecret: 'FatSecret',
 };
 
 /** "Verified · USDA + Open Food Facts", "Brand data · USDA". */

@@ -1,5 +1,5 @@
 import type { FoodItem, Macros } from './types';
-import { checkAll, compare, crossCheck, energyConsistent, internalChecks, massPossible, selfCheck, within } from './verify';
+import { calorieTolerance, checkAll, compare, crossCheck, energyCheck, energyConsistent, internalChecks, massPossible, proteinTolerance, selfCheck, within } from './verify';
 
 function food(over: Partial<FoodItem> & { per100g: Macros | null }): FoodItem {
   return { id: 'x', provider: 'usda', name: 'Bar', brand: null, barcode: null, quality: 'label', serving: null, ...over };
@@ -25,7 +25,10 @@ describe('internal checks', () => {
   it('flags kJ typed as kcal and impossible mass', () => {
     // 690 "kcal" for chicken is really kJ.
     expect(internalChecks(food({ per100g: { proteinG: 31, calories: 690, carbsG: 0, fatG: 3.6 } }))).toEqual(['energy_mismatch']);
-    expect(internalChecks(food({ per100g: { proteinG: 80, calories: 400, carbsG: 30, fatG: 5 } }))).toContain('impossible_mass');
+    expect(internalChecks(food({ per100g: { proteinG: 80, calories: 400, carbsG: 30, fatG: 5 } }))).toContain('impossible_values');
+    // Protein alone would supply more energy than declared.
+    expect(massPossible({ proteinG: 30, calories: 60, carbsG: 0, fatG: 0 })).toBe(false);
+    expect(massPossible({ proteinG: 10, calories: 950, carbsG: 0, fatG: 99 })).toBe(false);
   });
   it('lets fibre-heavy bars through (polyols and fibre count less than 4 kcal/g)', () => {
     expect(energyConsistent(bar)).toBe(true);
@@ -36,7 +39,48 @@ describe('compare', () => {
   it('detects per-serving numbers stored as per-100 g', () => {
     const a = food({ provider: 'usda', per100g: { proteinG: 35, calories: 317, carbsG: 38, fatG: 13 }, serving: { label: '1 bar (60 g)', grams: 60, macros: { proteinG: 21, calories: 190, carbsG: 23, fatG: 8 } } });
     const b = food({ provider: 'openfoodfacts', quality: 'community', per100g: { proteinG: 21, calories: 190, carbsG: 23, fatG: 8 } });
-    expect(compare(a, b)).toEqual({ protein: false, calories: false, basisMismatch: true });
+    expect(compare(a, b)).toEqual({ protein: false, calories: false, reason: 'basis_mismatch', basisMismatch: true });
+  });
+  it('names kJ stored as kcal and decimal slips', () => {
+    const a = food({ per100g: { proteinG: 31, calories: 165, carbsG: 0, fatG: 3.6 } });
+    expect(compare(a, food({ provider: 'openfoodfacts', per100g: { proteinG: 31, calories: 690, carbsG: 0, fatG: 3.6 } }))!.reason).toBe('kj_as_kcal');
+    expect(compare(a, food({ provider: 'openfoodfacts', per100g: { proteinG: 3.1, calories: 16.5, carbsG: 0, fatG: 0.36 } }))!.reason).toBe('decimal_shift');
+  });
+});
+
+describe('researched tolerances', () => {
+  it('protein: 2 g band below 10 g, 20% to 40 g, capped at 8 g, plus serving rounding', () => {
+    expect(proteinTolerance(5, null)).toBe(2.5);
+    expect(proteinTolerance(31, null)).toBeCloseTo(6.7);
+    expect(proteinTolerance(80, null)).toBe(8.5); // not 16 g as a flat 20% would allow
+    expect(proteinTolerance(80, 30)).toBeCloseTo(9.67); // ±0.5 g per 30 g serving = ±1.67 g per 100 g
+    expect(proteinTolerance(80, 5)).toBe(13); // rounding allowance capped at 5 g
+  });
+  it('an 80 g/100 g powder 10 g apart disagrees', () => {
+    const a = food({ per100g: { proteinG: 80, calories: 380, carbsG: 8, fatG: 5 } });
+    const b = food({ provider: 'openfoodfacts', per100g: { proteinG: 70, calories: 380, carbsG: 8, fatG: 5 } });
+    expect(compare(a, b)!.protein).toBe(false);
+  });
+  it('calories: 20 kcal / 20% plus rounding and fibre', () => {
+    expect(calorieTolerance(100, null, 0)).toBe(21);
+    expect(calorieTolerance(400, 40, 10)).toBeCloseTo(80 + 12.5 + 20);
+  });
+  it('energy check passes within 15%, warns to 30%, fails beyond (Open Food Facts thresholds)', () => {
+    expect(energyCheck({ proteinG: 31, calories: 165, carbsG: 0, fatG: 3.6 })).toBe('pass');
+    expect(energyCheck({ proteinG: 31, calories: 200, carbsG: 0, fatG: 3.6 })).toBe('warn');
+    expect(energyCheck({ proteinG: 31, calories: 690, carbsG: 0, fatG: 3.6 })).toBe('fail');
+    expect(energyCheck({ proteinG: 0.5, calories: 2, carbsG: 1, fatG: 0 })).toBe('pass'); // too small to judge
+    // Fibre at 0–4 kcal/g: a high-fibre bar passes once fibre is known.
+    expect(energyCheck(bar)).toBe('warn');
+    expect(energyCheck(bar, 20)).toBe('pass');
+  });
+  it('flags per-serving numbers that contradict per-100 g ones', () => {
+    const f = food({ per100g: { proteinG: 35, calories: 317, carbsG: 38, fatG: 13 }, serving: { label: '1 bar (60 g)', grams: 60, macros: { proteinG: 12, calories: 190, carbsG: 23, fatG: 8 } } });
+    expect(internalChecks(f)).toContain('serving_mismatch');
+  });
+  it('warnings do not demote; errors do', () => {
+    expect(selfCheck(food({ per100g: { proteinG: 31, calories: 200, carbsG: 0, fatG: 3.6 } })).reliability!.level).toBe('label');
+    expect(selfCheck(food({ per100g: { proteinG: 31, calories: 690, carbsG: 0, fatG: 3.6 } })).reliability!.level).toBe('reference');
   });
 });
 
@@ -95,5 +139,18 @@ describe('checkAll', () => {
       ['usda:1', 'verified'],
       ['usda:2', 'reference'],
     ]);
+  });
+});
+
+describe('verification-only sources (FatSecret)', () => {
+  const fs = food({ id: 'fatsecret:1', provider: 'fatsecret', quality: 'label', per100g: { proteinG: 78, calories: 390, carbsG: 9, fatG: 5 } });
+  const off = food({ id: 'off:1', provider: 'openfoodfacts', quality: 'community', per100g: { proteinG: 79, calories: 395, carbsG: 7, fatG: 5 } });
+  it('confirms but never becomes the shown record', () => {
+    const r = crossCheck([fs, off])!;
+    expect(r.id).toBe('off:1');
+    expect(r.reliability).toMatchObject({ level: 'verified', sources: ['openfoodfacts', 'fatsecret'] });
+  });
+  it('cannot answer alone', () => {
+    expect(crossCheck([fs])).toBeNull();
   });
 });

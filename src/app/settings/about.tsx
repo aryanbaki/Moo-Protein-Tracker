@@ -37,6 +37,7 @@ export default function AboutSettings() {
       <Group>
         <Row label="Food data" value="Open Food Facts · ODbL" />
         <Row label="Food data" value="USDA FoodData Central · public domain" />
+        <Row label="Barcode check" value="Powered by FatSecret" />
       </Group>
 
       {__DEV__ ? (

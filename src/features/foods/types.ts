@@ -6,7 +6,8 @@ import type { Reliability } from './verify';
  * FoodData Central). Dependency-free so pure mapping code and tests can use it.
  */
 
-export type FoodProvider = 'openfoodfacts' | 'usda';
+/** `fatsecret` is verification-only: never shown or logged (its terms forbid storing values). */
+export type FoodProvider = 'openfoodfacts' | 'usda' | 'fatsecret';
 
 /**
  * How much to trust the numbers:

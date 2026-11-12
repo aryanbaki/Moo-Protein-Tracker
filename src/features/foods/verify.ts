@@ -9,7 +9,7 @@
  * 3. A named reliability level, from best to worst, that the UI shows and the
  *    photo model uses to decide whether to replace its own estimate.
  *
- * Pure and dependency-free; tolerances are documented in docs/food-data.md.
+ * Pure and dependency-free; tolerances and their sources are in docs/food-data.md.
  */
 import type { ReliabilityLevel } from '../../types';
 import type { FoodItem, FoodProvider, Macros } from './types';
@@ -23,16 +23,27 @@ export type CheckCode =
   | 'sources_agree'
   /** Second source disagrees on protein or calories beyond tolerance. */
   | 'sources_disagree'
-  /** 4p + 4c + 9f is far from the declared calories. */
+  /** Macros and calories don't quite add up (outside ±15%, inside ±30%): shown, not demoted. */
+  | 'energy_warning'
+  /** Macros and calories are far apart (outside ±30%): a data-entry error; demoted. */
   | 'energy_mismatch'
-  /** Protein + carbs + fat exceed the weight of the food. */
-  | 'impossible_mass'
+  /** A value is physically impossible (e.g. macros over 105 g per 100 g, over 935 kcal per 100 g). */
+  | 'impossible_values'
+  /** Per-100 g × serving weight does not reproduce the per-serving numbers. */
+  | 'serving_mismatch'
   /** Only one source had this food. */
   | 'single_source'
-  /** Second source's numbers look like per-serving values stored as per-100 g (or the reverse). */
+  /** A source's numbers look like per-serving values stored as per-100 g (or the reverse). */
   | 'basis_mismatch'
+  /** A source's calories look like kilojoules. */
+  | 'kj_as_kcal'
+  /** A source's numbers are off by a factor of ten. */
+  | 'decimal_shift'
   /** The second source copied its numbers from the first, so agreement proves nothing. */
   | 'not_independent';
+
+/** Checks that mean the record itself is wrong; it drops one reliability level. */
+const ERRORS: CheckCode[] = ['energy_mismatch', 'impossible_values', 'serving_mismatch'];
 
 export interface Reliability {
   level: ReliabilityLevel;
@@ -43,41 +54,66 @@ export interface Reliability {
   proteinBySource?: { provider: FoodProvider; proteinPer100g: number }[];
 }
 
-/**
- * Tolerances. Protein on US labels is rounded to the nearest gram and may
- * legally read up to 20% above the true amount (FDA Class II nutrient: the
- * product must contain ≥ 80% of the declared value). Calories round to 5/10 kcal
- * and may be ≤ 120% of declared. Values are compared per 100 g.
- */
-export const TOLERANCE = {
-  /** Absolute slack for protein, g per 100 g (rounding of a small serving scales up per 100 g). */
-  proteinAbsG: 2,
-  /** Relative slack for protein. */
-  proteinRel: 0.2,
-  /** Absolute slack for calories per 100 g. */
-  caloriesAbs: 20,
-  /** Relative slack for calories. */
-  caloriesRel: 0.2,
-  /** Atwater check: declared vs computed kcal may differ by this fraction… */
-  atwaterRel: 0.25,
-  /** …or this many kcal per 100 g, whichever is larger (fiber, polyols, alcohol and rounding). */
-  atwaterAbs: 30,
-};
+/** Providers whose records may confirm others but are never shown or logged themselves. */
+export const VERIFY_ONLY: FoodProvider[] = ['fatsecret'];
 
+/** Plain "a and b differ by at most max(abs, rel × the larger)". Used for simple comparisons. */
 export function within(a: number, b: number, abs: number, rel: number): boolean {
   return Math.abs(a - b) <= Math.max(abs, rel * Math.max(Math.abs(a), Math.abs(b)));
 }
 
-/** True when the macros roughly add up to the calories. Unknown (zero-calorie or no-macro) records pass. */
-export function energyConsistent(m: Macros): boolean {
-  const computed = 4 * m.proteinG + 4 * m.carbsG + 9 * m.fatG;
-  if (m.calories <= 0 || computed <= 0) return true;
-  return within(m.calories, computed, TOLERANCE.atwaterAbs, TOLERANCE.atwaterRel);
+/**
+ * How far two correct per-100 g protein values may differ (docs/food-data.md):
+ * a band of 2 g below 10 g, 20% from 10–40 g (the FDA 80% floor for protein),
+ * capped at 8 g above 40 g (EU guidance), plus label rounding: protein is
+ * rounded to 1 g per serving, which is ±0.5 g × 100 / serving grams per 100 g.
+ */
+export function proteinTolerance(larger: number, servingG: number | null): number {
+  const band = larger < 10 ? 2 : larger <= 40 ? 0.2 * larger : 8;
+  const rounding = servingG && servingG > 0 ? Math.min((0.5 * 100) / servingG, 5) : 0.5;
+  return band + rounding;
 }
 
-/** Protein + carbs + fat cannot exceed 100 g per 100 g (with 5 g rounding slack). */
+/**
+ * Calories: max(20 kcal, 20%) (the FDA 120% ceiling), plus rounding to 5/10 kcal
+ * per serving scaled to 100 g, plus 2 kcal per g of fibre (labels may count
+ * fibre at 4, 2 or 0 kcal/g).
+ */
+export function calorieTolerance(larger: number, servingG: number | null, fiberG: number): number {
+  const rounding = servingG && servingG > 0 ? Math.min((5 * 100) / servingG, 40) : 1;
+  return Math.max(20, 0.2 * larger) + rounding + 2 * Math.max(0, fiberG);
+}
+
+export type EnergyVerdict = 'pass' | 'warn' | 'fail';
+
+/**
+ * Do the macros add up to the calories? Interval form, so fibre counted at 0–4
+ * kcal/g and EU "available" vs US "total" carbohydrate both pass. Open Food
+ * Facts' own thresholds: ±15% + 5 kcal passes, ±30% + 5 kcal warns, beyond fails.
+ */
+export function energyCheck(m: Macros, fiberG = 0, carbsMayExcludeFiber = false): EnergyVerdict {
+  const fiber = Math.max(0, fiberG);
+  const low = 4 * m.proteinG + 4 * Math.max(0, m.carbsG - fiber) + 9 * m.fatG;
+  const high = 4 * m.proteinG + 4 * (m.carbsG + (carbsMayExcludeFiber ? fiber : 0)) + 9 * m.fatG;
+  const e = m.calories;
+  if (Math.max(e, high) <= 13) return 'pass';
+  if (e >= 0.85 * low - 5 && e <= 1.15 * high + 5) return 'pass';
+  if (e >= 0.7 * low - 5 && e <= 1.3 * high + 5) return 'warn';
+  return 'fail';
+}
+
+/** True when the macros roughly add up to the calories (pass or warn). */
+export function energyConsistent(m: Macros, fiberG = 0, carbsMayExcludeFiber = false): boolean {
+  return energyCheck(m, fiberG, carbsMayExcludeFiber) !== 'fail';
+}
+
+/** Hard limits per 100 g: no macro over 105 g, their sum ≤ 105 g, ≤ 935 kcal, protein can't supply more energy than the total. */
 export function massPossible(m: Macros): boolean {
-  return m.proteinG + m.carbsG + m.fatG <= 105;
+  const each = m.proteinG <= 105 && m.carbsG <= 105 && m.fatG <= 105;
+  const sum = m.proteinG + m.carbsG + m.fatG <= 105;
+  const energy = m.calories <= 935;
+  const proteinEnergy = m.calories <= 0 || 4 * m.proteinG <= 1.15 * m.calories + 5;
+  return each && sum && energy && proteinEnergy;
 }
 
 /** Problems with one record on its own. */
@@ -85,16 +121,41 @@ export function internalChecks(food: FoodItem): CheckCode[] {
   const m = food.per100g;
   if (!m) return [];
   const out: CheckCode[] = [];
-  if (!energyConsistent(m)) out.push('energy_mismatch');
-  if (!massPossible(m)) out.push('impossible_mass');
+  const panel = food.panel ?? {};
+  const fiber = panel.fiber ?? 0;
+  // Open Food Facts mixes EU "available" carbohydrate (fibre excluded) with US totals.
+  const verdict = energyCheck(m, fiber, food.provider === 'openfoodfacts');
+  if (verdict === 'fail') out.push('energy_mismatch');
+  else if (verdict === 'warn') out.push('energy_warning');
+  const subOk = (panel.saturatedFat === undefined || panel.saturatedFat <= m.fatG + 0.5) && (panel.sugars === undefined || panel.sugars <= m.carbsG + 0.5);
+  if (!massPossible(m) || !subOk) out.push('impossible_values');
+  // Both a serving and per-100 g numbers: they must describe the same food.
+  const s = food.serving;
+  if (s?.grams && s.grams > 0) {
+    const expected = (m.proteinG * s.grams) / 100;
+    if (Math.abs(expected - s.macros.proteinG) > Math.max(1, 0.15 * Math.max(expected, s.macros.proteinG))) out.push('serving_mismatch');
+  }
   return out;
 }
 
 export interface Agreement {
   protein: boolean;
   calories: boolean;
-  /** b looks like a per-serving value stored as per-100 g (or the reverse). */
+  /** Why they disagree, when a simple unit/basis slip explains it. */
+  reason: 'basis_mismatch' | 'kj_as_kcal' | 'decimal_shift' | null;
+  /** Kept for callers that only care about the per-serving case. */
   basisMismatch: boolean;
+}
+
+function smallestServing(a: FoodItem, b: FoodItem): number | null {
+  const g = [a.serving?.grams, b.serving?.grams].filter((x): x is number => typeof x === 'number' && x > 0);
+  return g.length ? Math.min(...g) : null;
+}
+
+function ratioNear(a: number, b: number, target: number): boolean {
+  if (!(a > 0) || !(b > 0)) return false;
+  const r = a / b;
+  return Math.abs(r - target) <= 0.1 * target || Math.abs(1 / r - target) <= 0.1 * target;
 }
 
 /** Compares two records' per-100 g numbers. Null when either lacks per-100 g data. */
@@ -102,18 +163,18 @@ export function compare(a: FoodItem, b: FoodItem): Agreement | null {
   const x = a.per100g;
   const y = b.per100g;
   if (!x || !y) return null;
-  const protein = within(x.proteinG, y.proteinG, TOLERANCE.proteinAbsG, TOLERANCE.proteinRel);
-  const calories = within(x.calories, y.calories, TOLERANCE.caloriesAbs, TOLERANCE.caloriesRel);
-  let basisMismatch = false;
-  const g = a.serving?.grams ?? b.serving?.grams ?? null;
-  if (!protein && g && g > 0 && g !== 100) {
-    // Would scaling one side by serving/100 make them agree? Then one was stored on the wrong basis.
-    const k = g / 100;
-    basisMismatch =
-      within(x.proteinG * k, y.proteinG, TOLERANCE.proteinAbsG, TOLERANCE.proteinRel) ||
-      within(x.proteinG, y.proteinG * k, TOLERANCE.proteinAbsG, TOLERANCE.proteinRel);
+  const servingG = smallestServing(a, b);
+  const fiber = Math.max(a.panel?.fiber ?? 0, b.panel?.fiber ?? 0);
+  const protein = Math.abs(x.proteinG - y.proteinG) <= proteinTolerance(Math.max(x.proteinG, y.proteinG), servingG);
+  const calories = Math.abs(x.calories - y.calories) <= calorieTolerance(Math.max(x.calories, y.calories), servingG, fiber);
+  let reason: Agreement['reason'] = null;
+  if (!protein || !calories) {
+    const g = a.serving?.grams ?? b.serving?.grams ?? null;
+    if (g && g > 0 && g !== 100 && (ratioNear(x.proteinG, y.proteinG, 100 / g) || ratioNear(x.calories, y.calories, 100 / g))) reason = 'basis_mismatch';
+    else if (protein && ratioNear(x.calories, y.calories, 4.184)) reason = 'kj_as_kcal';
+    else if (ratioNear(x.proteinG, y.proteinG, 10) || ratioNear(x.calories, y.calories, 10)) reason = 'decimal_shift';
   }
-  return { protein, calories, basisMismatch };
+  return { protein, calories, reason, basisMismatch: reason === 'basis_mismatch' };
 }
 
 function baseLevel(food: FoodItem): ReliabilityLevel {
@@ -142,19 +203,21 @@ function demote(level: ReliabilityLevel): ReliabilityLevel {
  */
 export function crossCheck(candidates: FoodItem[]): FoodItem | null {
   const foods = candidates.filter((f) => f.per100g || f.serving);
-  if (foods.length === 0) return null;
+  // A verify-only source can confirm, never answer on its own.
+  if (!foods.some((f) => !VERIFY_ONLY.includes(f.provider))) return null;
 
   const scored = foods
     .map((f, i) => {
-      const issues = internalChecks(f);
+      const found = internalChecks(f);
+      const issues = found.filter((c) => ERRORS.includes(c));
       const level = issues.length ? demote(baseLevel(f)) : baseLevel(f);
-      return { f, i, issues, level };
+      return { f, i, issues, warnings: found.filter((c) => !ERRORS.includes(c)), level };
     })
-    .sort((a, b) => a.issues.length - b.issues.length || rank(a.level) - rank(b.level) || a.i - b.i);
+    .sort((a, b) => Number(VERIFY_ONLY.includes(a.f.provider)) - Number(VERIFY_ONLY.includes(b.f.provider)) || a.issues.length - b.issues.length || rank(a.level) - rank(b.level) || a.i - b.i);
 
   const primary = scored[0]!;
   const others = scored.slice(1).filter((o) => o.f.provider !== primary.f.provider);
-  const checks: CheckCode[] = [...primary.issues];
+  const checks: CheckCode[] = [...primary.issues, ...primary.warnings];
   let level = primary.level;
   const proteinBySource: Reliability['proteinBySource'] = [];
   if (primary.f.per100g) proteinBySource.push({ provider: primary.f.provider, proteinPer100g: primary.f.per100g.proteinG });
@@ -173,7 +236,7 @@ export function crossCheck(candidates: FoodItem[]): FoodItem | null {
         if (independent) agreed = true;
         else checks.push('not_independent');
       } else disagreed = true;
-      if (cmp.basisMismatch) checks.push('basis_mismatch');
+      if (cmp.reason) checks.push(cmp.reason);
     }
     if (agreed && primary.issues.length === 0) {
       level = 'verified';
@@ -191,9 +254,9 @@ export function crossCheck(candidates: FoodItem[]): FoodItem | null {
 
 /** Reliability for a lone record (search results): its own checks only. */
 export function selfCheck(food: FoodItem): FoodItem {
-  const issues = internalChecks(food);
-  const level = issues.length ? demote(baseLevel(food)) : baseLevel(food);
-  return { ...food, reliability: { level, sources: [food.provider], checks: [...issues, 'single_source'] } };
+  const found = internalChecks(food);
+  const level = found.some((c) => ERRORS.includes(c)) ? demote(baseLevel(food)) : baseLevel(food);
+  return { ...food, reliability: { level, sources: [food.provider], checks: [...found, 'single_source'] } };
 }
 
 /**

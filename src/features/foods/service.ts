@@ -12,6 +12,7 @@
 import { Platform } from 'react-native';
 
 import { getSupabase } from '../../lib/supabase';
+import { mapFatSecretFood } from './fatSecret';
 import { mapOffProductResponse, mapOffSearch, OFF_USER_AGENT, offProductUrl, offSearchUrl } from './openFoodFacts';
 import { normalizeCode } from './nutrients';
 import { rankFoods, scoreFood } from './rank';
@@ -29,6 +30,8 @@ export interface FoodDeps {
   fetch: typeof fetch;
   /** Raw USDA search JSON for a request body. Defaults to the Edge Function, or DEMO_KEY without Supabase. */
   usdaSearch: (body: ReturnType<typeof usdaSearchBody>) => Promise<unknown>;
+  /** Raw `food-verify` response for a barcode, or null when FatSecret is not set up. */
+  fatSecretBarcode: (code: string) => Promise<unknown>;
   now: () => number;
 }
 
@@ -77,11 +80,27 @@ export async function defaultUsdaSearch(body: ReturnType<typeof usdaSearchBody>,
   return json;
 }
 
+/** Turned off for the session once the function says FatSecret has no keys. */
+let fatSecretConfigured = true;
+
+/** Default FatSecret transport: the `food-verify` Edge Function; null without Supabase or keys. */
+export async function defaultFatSecretBarcode(code: string): Promise<unknown> {
+  const supabase = getSupabase();
+  if (!supabase || !fatSecretConfigured) return null;
+  const { data, error } = await supabase.functions.invoke('food-verify', { body: { barcode: code } });
+  if (error) {
+    if ((error as { context?: { status?: unknown } }).context?.status === 501) fatSecretConfigured = false;
+    return null;
+  }
+  return data;
+}
+
 export function createFoodService(partial: Partial<FoodDeps> = {}) {
   const deps: FoodDeps = {
     // Late-bound so tests that replace global fetch, and polyfills, are honoured.
     fetch: partial.fetch ?? (((input: string, init?: RequestInit) => fetch(input, init)) as typeof fetch),
     usdaSearch: partial.usdaSearch ?? ((b) => defaultUsdaSearch(b, deps.fetch)),
+    fatSecretBarcode: partial.fatSecretBarcode ?? defaultFatSecretBarcode,
     now: partial.now ?? Date.now,
   };
   const barcodeCache = new Map<string, BarcodeResult>();
@@ -117,14 +136,17 @@ export function createFoodService(partial: Partial<FoodDeps> = {}) {
     const cached = barcodeCache.get(code);
     if (cached) return cached;
 
-    const [offRes, usdaRes] = await Promise.allSettled([
+    const [offRes, usdaRes, fsRes] = await Promise.allSettled([
       getJson(deps.fetch, offProductUrl(code), offInit()).then(({ json }) => mapOffProductResponse(json, code)),
       usda({ query: code, dataTypes: ['Branded'], pageSize: 5 }).then((foods) => pickBarcodeMatch(foods, code)),
+      // Independent third opinion (verification only); failures are ignored.
+      deps.fatSecretBarcode(code).then((json) => mapFatSecretFood(json, code)),
     ]);
 
     const candidates: FoodItem[] = [];
     if (offRes.status === 'fulfilled' && offRes.value.status === 'found') candidates.push(offRes.value.food);
     if (usdaRes.status === 'fulfilled' && usdaRes.value) candidates.push(usdaRes.value);
+    if (fsRes.status === 'fulfilled' && fsRes.value) candidates.push(fsRes.value);
     const best = crossCheck(candidates);
     if (best) return remember(barcodeCache, code, { status: 'found', food: best });
 
