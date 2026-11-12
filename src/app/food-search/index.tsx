@@ -6,8 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../../components';
 import { foods, foodToScannedItem, FoodLookupError, type FoodItem } from '../../features/foods';
+import { unitGramsOf } from '../../features/foods/amount';
 import { PROVIDER_NAME, proteinLine, resultA11yLabel, SEARCH_ERRORS, sourceLine } from '../../features/foods/copy';
 import { displayName } from '../../features/foods/toScan';
+import { GramsInput } from '../../features/foods/ui/GramsInput';
 import { NutritionFacts } from '../../features/foods/ui/NutritionFacts';
 import { isValidDay, useLog } from '../../features/log';
 import { toEditable, totalsOf, type EditableItem } from '../../features/scan/totals';
@@ -75,7 +77,9 @@ export default function FoodSearchScreen() {
   if (picked) {
     const { food, items } = picked;
     // Weight of what is being logged: label servings × serving weight, else 100 g portions.
-    const grams = (food.serving?.grams ?? 100) * (items[0]?.servings ?? 1);
+    // Grams in one "serving" of the item: the label serving, or 100 g when the food has no serving. Null for "1 bar" without a weight.
+    const unitGrams = unitGramsOf(food);
+    const grams = unitGrams ? unitGrams * (items[0]?.servings ?? 1) : null;
     return (
       <ResultView
         items={items}
@@ -88,7 +92,8 @@ export default function FoodSearchScreen() {
         retakeLabel="Back"
         onClose={close}
       >
-        {food.panel && items.length > 0 ? <NutritionFacts panel={food.panel} grams={grams} source={(food.reliability?.sources ?? [food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} /> : null}
+        {items[0] && unitGrams ? <GramsInput servingGrams={unitGrams} servings={items[0].servings} onServings={(servings) => setPicked({ food, items: items.map((i, n) => (n === 0 ? { ...i, servings } : i)) })} /> : null}
+        {food.panel && grams ? <NutritionFacts panel={food.panel} grams={grams} source={(food.reliability?.sources ?? [food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} /> : null}
       </ResultView>
     );
   }

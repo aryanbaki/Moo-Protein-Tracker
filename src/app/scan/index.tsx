@@ -5,7 +5,9 @@ import { Platform } from 'react-native';
 
 import { canPhotoScan, FREE_PHOTO_SCANS, presentPaywall, useBilling } from '../../features/billing';
 import type { FoodItem } from '../../features/foods';
+import { unitGramsOf } from '../../features/foods/amount';
 import { PROVIDER_NAME } from '../../features/foods/copy';
+import { GramsInput } from '../../features/foods/ui/GramsInput';
 import { NutritionFacts } from '../../features/foods/ui/NutritionFacts';
 import { useLog } from '../../features/log';
 import { analyzePhoto, ScanError } from '../../features/scan/analyze';
@@ -132,8 +134,13 @@ export default function ScanScreen() {
           onRetake={backToCapture}
           onClose={close}
         >
-          {phase.food?.panel && phase.items[0] ? (
-            <NutritionFacts panel={phase.food.panel} grams={(phase.food.serving?.grams ?? 100) * phase.items[0].servings} source={(phase.food.reliability?.sources ?? [phase.food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} />
+          {phase.food && phase.items[0] && unitGramsOf(phase.food) ? (
+            <>
+              <GramsInput servingGrams={unitGramsOf(phase.food)!} servings={phase.items[0].servings} onServings={(servings) => setPhase({ ...phase, items: phase.items.map((i, n) => (n === 0 ? { ...i, servings } : i)) })} />
+              {phase.food.panel ? (
+                <NutritionFacts panel={phase.food.panel} grams={unitGramsOf(phase.food)! * phase.items[0].servings} source={(phase.food.reliability?.sources ?? [phase.food.provider]).map((p) => PROVIDER_NAME[p]).join(' + ')} />
+              ) : null}
+            </>
           ) : null}
         </ResultView>
       );
