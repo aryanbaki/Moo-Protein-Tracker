@@ -2,6 +2,58 @@
 
 Last verified: November 11, 2026 (America/Chicago).
 Repository: aryanbaki/Moo-Protein-Tracker. Branch: codex/moo-foundation.
+PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/1
+
+## Existing-project linking completed
+- Fetched current foundation head 6f1f624 and switched from the clean initial
+  checkout; preserved existing work. Read AGENTS.md and all required project docs.
+- Live cloud environment reports current observations, enforced network policy,
+  api.expo.dev allowed, and EXPO_TOKEN ready, scoped to api.expo.dev.
+- `npm run expo:project` authenticated successfully and returned exactly
+  e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1, owner **aryanbakis-team**, slug
+  **moo-protein-tracker**, full name @aryanbakis-team/moo-protein-tracker.
+- Recorded only verified owner and extra.eas.projectId in app.json; slug already
+  matched. `npm run expo:project -- --verify` passed against authenticated metadata.
+  Token authentication requires no interactive login or persisted password.
+- Updates remain disabled and without a URL because the current user task is
+  link-only. No readiness gate was opened. No project was created, native build
+  started, signing changed, submission made, or update published.
+- Added [Claude handoff](claude-handoff.md) with review prompt and phone workflow.
+
+## Fresh checks for this linking task
+Node v24.22.1 / npm 11.9.0.
+- Passed: npm ci --no-audit --no-fund (778 packages), npm run test:setup
+  (7 tests), npm run typecheck, npm run lint, npm run export:ios (1131 modules).
+- Passed: resolved public Expo config and exact owner/project/disabled-updates
+  assertions; authenticated metadata before and after linking.
+- Failed: npm run doctor, 18/20. exp.host schema fetch returned EAI_AGAIN;
+  React Native Directory returned an unexpected server response. Fresh curl probes
+  to exp.host and reactnative.directory both returned CONNECT 403. These domains
+  remain absent from the running allowlist. api.expo.dev access is now working.
+- Passed: git diff --check and relative Markdown link validation.
+- Not run: native builds, signing, device registration, submissions, OTA delivery,
+  device testing, audit rerun. Historical advisory/CI evidence below is not a
+  fresh check for this commit. ESLint installation deprecation warning remains.
+
+## Remaining work and next concrete task
+Confirm the existing iOS bundle identifier and Apple team from authoritative Expo/
+Apple records, then prepare signing/device registration when the phone is available.
+No bundle identifier, Apple team, or App Store Connect app ID has been established
+by this task. GitHub secrets/environments/readiness gates also remain unverified.
+Add missing Doctor destinations to the cloud environment before retrying its two
+network checks. Do not build or publish without a separately authorized task.
+
+A static mascot concept/home-screen mockup can proceed while awaiting the phone.
+Implement the first complete goal/log/progress/persistence flow after foundation
+review and device readiness; avoid elaborate onboarding or animation first.
+
+The older evidence below is preserved for history. Its token/link blocker and next
+session instructions are superseded by the verified linking results above.
+
+# Prior foundation verification (historical)
+
+Last verified: November 11, 2026 (America/Chicago).
+Repository: aryanbaki/Moo-Protein-Tracker. Branch: codex/moo-foundation.
 Setup work started from current remote commit fd607c0, not the historical
 8d5c2db handoff. Existing foundation PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/1
 

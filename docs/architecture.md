@@ -20,8 +20,8 @@ The foundation uses stable SDK 58, initialized from Expo's official default temp
 - .github/workflows/checks.yml: cloud TypeScript, lint, and Expo Doctor checks.
 - app.json: Moo display name, moo-protein-tracker slug, moo URL scheme,
   portrait/light UI, iPhone-only configuration, and Expo Router, splash-screen,
-  and status-bar plugins. No owner,
-  extra.eas.projectId, or ios.bundleIdentifier is configured yet.
+  and status-bar plugins. Verified owner aryanbakis-team and the existing
+  extra.eas.projectId are configured; ios.bundleIdentifier remains pending.
 - eas.json: pinned EAS CLI, development/preview/production build profiles and a
   pending production submission profile.
 - .github/workflows/delivery.yml: manual delivery with closed readiness gates.
@@ -67,16 +67,16 @@ development environment.
 ### Existing Expo project and app identity
 Existing user-supplied Expo project ID:
 `e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1`. Known username: `aryanbaki`;
-user-reported dashboard title: “Moo: Protein Tracker”. Authenticated owner and slug
-remain unverified; a team may own it. The current local name “Moo”, slug
+user-reported dashboard title: “Moo: Protein Tracker”. Authenticated owner is `aryanbakis-team` and slug is
+`moo-protein-tracker`, verified through the exact-project API query. The current local name “Moo”, slug
 “moo-protein-tracker”, URL scheme “moo”, version 1.0.0, portrait/light UI, and
 supportsTablet=false are retained. Expo resolves default platforms to iOS, Android,
 and web because no platforms override is set; only iOS delivery is prepared, and
 Android/web product support is outside the launch scope. No new app or Expo project was initialized.
 
-The read-only `npm run expo:project` looks up the exact ID. Once access works,
-record the returned owner/slug and project ID in app.json, confirm any existing
-bundle identifier in Expo/Apple, and verify the resolved config. Never infer Apple
+The read-only `npm run expo:project` looks up the exact ID. The returned owner/slug
+and project ID are now recorded in app.json and the resolved config is verified.
+Next, confirm any existing bundle identifier in Expo/Apple. Never infer Apple
 Team ID or App Store Connect numeric app ID from an Expo account. No permanent
 bundle ID, Apple Team ID, or ascAppId is configured. See the cloud runbook for the
 proposed bundle ID (pending existing-identifier checks and owner confirmation).
@@ -126,7 +126,8 @@ App Store rules permit the change. Data migrations also need backward-compatible
 rollout/rollback planning, even when native fingerprints match.
 
 Updates are deliberately disabled (`updates.enabled=false`) and have no URL yet
-because authenticated project verification is blocked. After verification, set
+for the current link-only task. Project verification has passed. In a separately
+authorized update-configuration task, set
 the exact existing project's `https://u.expo.dev/<project-ID>` URL and enable
 updates as described in cloud-setup.md. No placeholder owner or identifier is
 release configuration. Preview and production profiles have distinct channels

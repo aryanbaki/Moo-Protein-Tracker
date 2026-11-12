@@ -46,9 +46,9 @@ read-only repository permissions and validates future pull requests.
   access remains blocked; account/signing setup is unverified. See status.md.
 
 ## Next steps
-1. Use the published cloud environment in a fresh session; verify live Expo
-   network/token access, rerun Doctor, and retrieve authenticated project metadata.
-   Link only e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1 and confirm the real iOS bundle ID.
+1. Expo token authentication and exact-project linking are now verified (owner
+   aryanbakis-team, slug moo-protein-tracker). Confirm the real iOS bundle ID next.
+   Doctor network access to exp.host/reactnative.directory still needs repair.
 2. Finish the prepared update configuration and verify Apple signing, device
    registration, App Store Connect app/API key, and GitHub readiness gates.
 3. Build and install an internal preview or TestFlight build; smoke-test on iPhone.

@@ -21,6 +21,12 @@
       "enabled": false,
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
+    },
+    "owner": "aryanbakis-team",
+    "extra": {
+      "eas": {
+        "projectId": "e3e7b8db-430f-4dc3-a5b5-deff3b0a45e1"
+      }
     }
   }
 }
