@@ -14,8 +14,8 @@ import { AppText } from './index';
 export interface SheetProps {
   visible: boolean;
   onClose: () => void;
+  /** One or two words. */
   title?: string;
-  subtitle?: string;
   children: ReactNode;
   testID?: string;
 }
@@ -24,7 +24,7 @@ const OPEN_MS = 260;
 const CLOSE_MS = 180;
 const TRAVEL = 520;
 
-export function Sheet({ visible, onClose, title, subtitle, children, testID }: SheetProps) {
+export function Sheet({ visible, onClose, title, children, testID }: SheetProps) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   // Stay mounted while the closing animation plays.
@@ -67,12 +67,9 @@ export function Sheet({ visible, onClose, title, subtitle, children, testID }: S
           <View style={styles.grabber} />
           {title ? (
             <View style={styles.header}>
-              <View style={{ flex: 1 }}>
-                <AppText variant="heading" accessibilityRole="header" style={{ fontSize: 24 }}>
-                  {title}
-                </AppText>
-                {subtitle ? <AppText variant="caption">{subtitle}</AppText> : null}
-              </View>
+              <AppText variant="heading" accessibilityRole="header" style={{ flex: 1, fontSize: 24 }}>
+                {title}
+              </AppText>
               <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} style={styles.close}>
                 <AppText variant="label" color={colors.textSecondary}>
                   ✕

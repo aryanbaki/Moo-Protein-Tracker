@@ -5,7 +5,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { AppText } from '../../components';
 import { colors, fonts, radius, shadow, spacing } from '../../theme';
 import type { FoodEntry } from '../../types';
-import { formatNumber, formatTime, SOURCE_ICON, SOURCE_LABEL } from './copy';
+import { formatNumber, formatTime, SOURCE_LABEL } from './copy';
 
 export interface EntryRowProps {
   entry: FoodEntry;
@@ -73,15 +73,12 @@ export function EntryRow({ entry, onPress, onDelete }: EntryRowProps) {
           style={styles.press}
           testID={`entry-${entry.id}`}
         >
-          <View style={styles.icon}>
-            <AppText style={{ fontSize: 18 }}>{SOURCE_ICON[entry.source]}</AppText>
-          </View>
           <View style={styles.middle}>
             <AppText variant="label" numberOfLines={1}>
               {entry.name}
             </AppText>
             <AppText variant="small" numberOfLines={1}>
-              {formatNumber(entry.calories)} kcal · {time}
+              {formatNumber(entry.calories)} kcal
             </AppText>
           </View>
           <AppText variant="label" style={styles.protein}>
@@ -98,8 +95,7 @@ const styles = StyleSheet.create({
   wrap: { borderRadius: radius.md, backgroundColor: colors.bad },
   behind: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'flex-end', justifyContent: 'center', paddingRight: spacing.lg },
   card: { backgroundColor: colors.surface, borderRadius: radius.md, ...shadow.card },
-  press: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 64, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  press: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 60, paddingHorizontal: spacing.md + 4, paddingVertical: spacing.sm },
   middle: { flex: 1, gap: 2 },
   protein: { fontFamily: fonts.black, fontSize: 20, color: colors.primaryDark },
 });

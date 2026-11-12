@@ -7,7 +7,7 @@ import { canPhotoScan, FREE_PHOTO_SCANS, presentPaywall, useBilling } from '../.
 import { useLog } from '../../features/log';
 import { analyzePhoto, ScanError } from '../../features/scan/analyze';
 import { BarcodeError, lookupBarcode } from '../../features/scan/barcode';
-import { scansLeftLabel, type ProblemCode } from '../../features/scan/copy';
+import { scansLeftLabel, scansLeftSpoken, type ProblemCode } from '../../features/scan/copy';
 import { entryFromItems, toEditable, type EditableItem } from '../../features/scan/totals';
 import { CameraStage } from '../../features/scan/ui/CameraStage';
 import type { ScanMode } from '../../features/scan/ui/parts';
@@ -36,7 +36,8 @@ export default function ScanScreen() {
 
   const isPremium = useBilling((s) => s.isPremium);
   const used = useBilling((s) => s.photoScansUsed);
-  const allowanceLabel = isPremium ? undefined : scansLeftLabel(Math.max(0, FREE_PHOTO_SCANS - used));
+  const allowanceLabel = isPremium ? undefined : scansLeftLabel(FREE_PHOTO_SCANS - used);
+  const allowanceSpoken = isPremium ? undefined : scansLeftSpoken(FREE_PHOTO_SCANS - used);
 
   const backToCapture = useCallback(() => {
     job.current++;
@@ -135,8 +136,8 @@ export default function ScanScreen() {
         <LimitView
           onClose={close}
           actions={[
-            { title: 'See Moo Premium', onPress: () => presentPaywall('scan_limit') },
-            { title: 'Scan a barcode instead', variant: 'secondary', onPress: () => { setMode('barcode'); backToCapture(); } },
+            { title: 'See Premium', onPress: () => presentPaywall('scan_limit') },
+            { title: 'Scan barcode', variant: 'secondary', onPress: () => { setMode('barcode'); backToCapture(); } },
           ]}
         />
       );
@@ -151,12 +152,12 @@ export default function ScanScreen() {
           onClose={close}
           actions={[
             ...(code === 'unauthorized' ? [{ title: 'Sign in', onPress: () => router.push('/auth') }] : []),
-            ...(retry ? [{ title: 'Try again', onPress: () => void (retry.kind === 'photo' ? runPhoto(retry.uri) : runBarcode(retry.code)) }] : []),
+            ...(retry ? [{ title: 'Retry', onPress: () => void (retry.kind === 'photo' ? runPhoto(retry.uri) : runBarcode(retry.code)) }] : []),
             ...(code === 'no_food' ? [{ title: 'Retake', onPress: backToCapture }] : []),
-            ...(isBarcodeProblem && code !== 'invalid' ? [{ title: 'Type it in', onPress: typeItIn }] : []),
+            ...(isBarcodeProblem && code !== 'invalid' ? [{ title: 'Type instead', onPress: typeItIn }] : []),
             ...(code !== 'no_food'
-              ? [{ title: isBarcodeProblem ? 'Try another barcode' : 'Back', variant: code === 'invalid' ? ('primary' as const) : ('ghost' as const), onPress: backToCapture }]
-              : [{ title: 'Type it in', variant: 'ghost' as const, onPress: typeItIn }]),
+              ? [code === 'invalid' ? { title: 'Retry', onPress: backToCapture } : { title: 'Back', variant: 'ghost' as const, onPress: backToCapture }]
+              : [{ title: 'Type instead', variant: 'ghost' as const, onPress: typeItIn }]),
           ]}
         />
       );
@@ -164,7 +165,7 @@ export default function ScanScreen() {
 
     case 'capture':
       return Platform.OS === 'web' ? (
-        <FallbackCapture mode={mode} onModeChange={setMode} onClose={close} onPickLibrary={() => void pickLibrary()} onBarcode={(c) => void runBarcode(c)} allowanceLabel={allowanceLabel} />
+        <FallbackCapture mode={mode} onModeChange={setMode} onClose={close} onPickLibrary={() => void pickLibrary()} onBarcode={(c) => void runBarcode(c)} allowanceLabel={allowanceLabel} allowanceSpoken={allowanceSpoken} />
       ) : (
         <CameraStage
           mode={mode}
@@ -174,6 +175,7 @@ export default function ScanScreen() {
           onBarcode={(c) => void runBarcode(c)}
           onPickLibrary={() => void pickLibrary()}
           allowanceLabel={allowanceLabel}
+          allowanceSpoken={allowanceSpoken}
         />
       );
   }

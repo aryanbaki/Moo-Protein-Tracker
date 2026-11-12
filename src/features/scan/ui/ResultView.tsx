@@ -34,28 +34,31 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
       scroll
       footer={
         <>
-          <Button title="Add to today" onPress={onSave} disabled={items.length === 0 || saving} accessibilityLabel={`Add to today: ${fmt(totals.proteinG)} grams of protein, ${fmt(totals.calories)} calories`} />
-          <Button title={source === 'photo' ? 'Retake' : 'Scan another'} variant="ghost" onPress={onRetake} style={{ minHeight: 44 }} />
+          <Button title="Add" onPress={onSave} disabled={items.length === 0 || saving} accessibilityLabel={`Add to today: ${fmt(totals.proteinG)} grams of protein, ${fmt(totals.calories)} calories`} />
+          <Button title={source === 'photo' ? 'Retake' : 'Rescan'} variant="ghost" onPress={onRetake} style={{ minHeight: 44 }} />
         </>
       }
     >
       <View style={styles.header}>
         <CloseButton onPress={onClose} />
-        {mock ? <Pill text="Demo result" tone="warning" /> : null}
-      </View>
-
-      <View style={styles.titleRow}>
-        {photoUri ? <Image source={{ uri: photoUri }} style={styles.thumb} accessibilityIgnoresInvertColors accessibilityLabel="Your photo" /> : null}
-        <View style={{ flex: 1 }}>
-          <AppText variant="heading" style={{ fontSize: 24, lineHeight: 30 }}>{source === 'photo' ? "Here's what I see" : 'Found it'}</AppText>
-          <AppText variant="caption">Estimates. Tap to adjust.</AppText>
+        <View style={styles.tags}>
+          {mock ? <Pill text="Demo" tone="warning" accessibilityLabel="Demo result: sample numbers, not your photo" testID="tag-demo" /> : null}
+          <Pill
+            text="Estimate"
+            tone={unsure ? 'warning' : 'soft'}
+            accessibilityLabel={unsure ? 'Rough estimate. Check the items and portions before you add it.' : 'Estimate. Every value can be edited.'}
+            testID="tag-estimate"
+          />
         </View>
       </View>
 
       <Card style={styles.totals}>
-        <View accessible accessibilityLabel={`${fmt(totals.proteinG)} grams of protein`} style={styles.heroRow}>
-          <Text style={styles.heroNumber}>{fmt(totals.proteinG)}</Text>
-          <AppText variant="label" color={colors.primaryDark} style={{ marginBottom: 10 }}>g protein</AppText>
+        <View style={styles.heroLine}>
+          <View accessible accessibilityLabel={`${fmt(totals.proteinG)} grams of protein`} style={styles.heroRow}>
+            <Text style={styles.heroNumber}>{fmt(totals.proteinG)}</Text>
+            <AppText variant="label" color={colors.primaryDark} style={{ marginBottom: 10 }}>g protein</AppText>
+          </View>
+          {photoUri ? <Image source={{ uri: photoUri }} style={styles.thumb} accessibilityIgnoresInvertColors accessibilityLabel="Your photo" /> : null}
         </View>
         <View style={styles.tiles}>
           <MacroTile label="Calories" value={fmt(totals.calories)} unit="kcal" color={colors.calories} />
@@ -64,20 +67,7 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
         </View>
       </Card>
 
-      {mock ? (
-        <View style={[styles.hint, { backgroundColor: colors.surfaceAlt }]}>
-          <AppText variant="caption">{"Demo result: photo analysis isn't connected here, so these are sample numbers, not your photo."}</AppText>
-        </View>
-      ) : null}
-      {unsure ? (
-        <View style={[styles.hint, styles.hintWarn]}>
-          <AppText variant="caption" color={colors.text}>{"I'm not very sure about this one. Check the items and portions before you add it."}</AppText>
-        </View>
-      ) : null}
-
-      {items.length === 0 ? (
-        <Card><AppText variant="caption" center>Nothing left to add. Retake, or close and type it in.</AppText></Card>
-      ) : null}
+      {items.length === 0 ? <AppText variant="caption" center>No items</AppText> : null}
 
       {items.map((item) => {
         const s = scaled(item);
@@ -129,7 +119,7 @@ export function ResultView({ items, source, mock, photoUri, saving, onChange, on
         );
       })}
 
-      {source === 'barcode' ? <AppText variant="small" center>Product data from Open Food Facts. Check it against the label.</AppText> : null}
+      {source === 'barcode' ? <AppText variant="small" center>Open Food Facts</AppText> : null}
     </Screen>
   );
 }
@@ -161,7 +151,8 @@ function StepButton({ glyph, label, disabled, onPress }: { glyph: string; label:
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  tags: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  heroLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   thumb: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
   totals: { gap: spacing.md, backgroundColor: colors.primarySoft, shadowOpacity: 0, elevation: 0 },
   heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
@@ -169,8 +160,6 @@ const styles = StyleSheet.create({
   tiles: { flexDirection: 'row', gap: spacing.sm },
   tile: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: 12, gap: 2 },
   dot: { width: 10, height: 10, borderRadius: 5, marginBottom: 2 },
-  hint: { borderRadius: radius.md, padding: spacing.md },
-  hintWarn: { backgroundColor: '#FBEBCF', borderWidth: 2, borderColor: colors.warning },
   item: { gap: spacing.sm },
   itemTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   nameInput: { fontFamily: fonts.bold, fontSize: 18, color: colors.text, minHeight: 32, paddingVertical: 2, paddingHorizontal: 0 },

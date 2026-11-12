@@ -16,14 +16,15 @@ export interface CameraStageProps {
   onPhoto: (uri: string) => void;
   onBarcode: (code: string) => void;
   onPickLibrary: () => void;
-  /** e.g. "2 free scans left"; hidden for premium. */
+  /** e.g. "3 left"; hidden for premium. */
   allowanceLabel?: string;
+  allowanceSpoken?: string;
 }
 
 /** Ignore repeat reads of the same code for this long. */
 const BARCODE_DEBOUNCE_MS = 2500;
 
-export function CameraStage({ mode, onModeChange, onClose, onPhoto, onBarcode, onPickLibrary, allowanceLabel }: CameraStageProps) {
+export function CameraStage({ mode, onModeChange, onClose, onPhoto, onBarcode, onPickLibrary, allowanceLabel, allowanceSpoken }: CameraStageProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const camera = useRef<CameraView>(null);
   const [ready, setReady] = useState(false);
@@ -67,7 +68,7 @@ export function CameraStage({ mode, onModeChange, onClose, onPhoto, onBarcode, o
             ) : (
               <Button title="Allow camera" onPress={() => void requestPermission()} />
             )}
-            {mode === 'photo' ? <Button title="Pick from library" variant="secondary" onPress={onPickLibrary} /> : null}
+            {mode === 'photo' ? <Button title="Choose photo" variant={mountFailed ? 'primary' : 'secondary'} onPress={onPickLibrary} /> : null}
           </>
         }
       >
@@ -75,16 +76,9 @@ export function CameraStage({ mode, onModeChange, onClose, onPhoto, onBarcode, o
           <CloseButton onPress={onClose} />
         </View>
         <View style={styles.permBody}>
-          <Cow size={180} pose={blocked || mountFailed ? 'shrug' : 'wave'} />
-          <AppText variant="heading" center>
-            {mountFailed ? "The camera won't start" : blocked ? 'Camera is switched off' : 'Can I borrow your camera?'}
-          </AppText>
-          <AppText variant="body" center color={colors.textSecondary}>
-            {mountFailed
-              ? 'You can still pick a photo from your library.'
-              : blocked
-                ? 'Moo needs the camera to scan food and barcodes. You can turn it on in Settings.'
-                : 'Moo uses the camera to scan your food and read barcodes. Photos are only used to estimate nutrition.'}
+          <Cow size={220} pose={blocked || mountFailed ? 'shrug' : 'wave'} />
+          <AppText variant="heading" center accessibilityRole="header">
+            {mountFailed ? 'No camera' : blocked ? 'Camera is off' : 'Camera needed'}
           </AppText>
           <ModeToggle mode={mode} onChange={onModeChange} />
         </View>
@@ -107,12 +101,11 @@ export function CameraStage({ mode, onModeChange, onClose, onPhoto, onBarcode, o
       <SafeAreaView style={styles.overlay} pointerEvents="box-none">
         <View style={styles.top}>
           <CloseButton dark onPress={onClose} />
-          {!isBarcode && allowanceLabel ? <Pill tone="dark" text={allowanceLabel} /> : null}
+          {!isBarcode && allowanceLabel ? <Pill tone="dark" text={allowanceLabel} accessibilityLabel={allowanceSpoken} /> : null}
         </View>
 
-        <View style={styles.guideWrap} pointerEvents="none">
+        <View style={styles.guideWrap} pointerEvents="none" accessible accessibilityLabel={isBarcode ? 'Line up the barcode in the frame' : 'Fit your food in the frame'}>
           <View style={[styles.guide, isBarcode ? styles.guideBarcode : null]} />
-          <Pill tone="dark" text={isBarcode ? 'Line up the barcode' : 'Fit your food in the frame'} style={{ marginTop: spacing.md }} />
         </View>
 
         <View style={styles.bottom}>
@@ -137,9 +130,7 @@ export function CameraStage({ mode, onModeChange, onClose, onPhoto, onBarcode, o
                 <View style={styles.shutterInner} />
               </Pressable>
             ) : (
-              <View style={styles.shutterSpace}>
-                <AppText variant="caption" center color={colors.textOnPrimary}>Barcode scans are always free</AppText>
-              </View>
+              <View style={styles.shutterSpace} />
             )}
             <View style={styles.side} />
           </View>
@@ -163,7 +154,7 @@ const styles = StyleSheet.create({
   libraryGlyph: { fontFamily: fonts.bold, fontSize: 24, color: colors.textOnPrimary },
   shutter: { width: 84, height: 84, borderRadius: 42, borderWidth: 5, borderColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface },
-  shutterSpace: { flex: 1, minHeight: 84, justifyContent: 'center' },
+  shutterSpace: { flex: 1, minHeight: 84 },
   permHeader: { flexDirection: 'row' },
   permBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
 });

@@ -6,7 +6,10 @@ import { AppText } from '../../components';
 import { colors, radius, shadow, spacing } from '../../theme';
 
 export interface UndoToastProps {
+  /** Visible text, one word. */
   message: string | null;
+  /** Longer text for screen readers, e.g. "Deleted Chicken burrito". */
+  accessibilityLabel?: string;
   onUndo: () => void;
   onDismiss: () => void;
   /** How long the toast stays up. */
@@ -14,8 +17,8 @@ export interface UndoToastProps {
   bottom?: number;
 }
 
-/** "Deleted X · Undo" pill that goes away on its own. */
-export function UndoToast({ message, onUndo, onDismiss, durationMs = 5000, bottom = 16 }: UndoToastProps) {
+/** "Deleted · Undo" pill that goes away on its own. */
+export function UndoToast({ message, accessibilityLabel, onUndo, onDismiss, durationMs = 5000, bottom = 16 }: UndoToastProps) {
   const reduceMotion = useReducedMotion();
   const [appear] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -36,12 +39,12 @@ export function UndoToast({ message, onUndo, onDismiss, durationMs = 5000, botto
       accessibilityLiveRegion="polite"
       testID="undo-toast"
     >
-      <AppText variant="caption" color={colors.textOnPrimary} numberOfLines={1} style={{ flex: 1 }}>
+      <AppText variant="caption" color={colors.textOnPrimary} numberOfLines={1} style={{ flex: 1 }} accessibilityLabel={accessibilityLabel}>
         {message}
       </AppText>
       <Pressable onPress={onUndo} accessibilityRole="button" accessibilityLabel="Undo delete" hitSlop={10} style={styles.undo}>
         <AppText variant="label" color={colors.beam}>
-          UNDO
+          Undo
         </AppText>
       </Pressable>
     </Animated.View>
@@ -52,7 +55,7 @@ const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
     left: spacing.md,
-    right: 96,
+    right: spacing.md,
     minHeight: 52,
     borderRadius: radius.pill,
     backgroundColor: colors.text,

@@ -1,21 +1,9 @@
-import { dayLetter, dayName, dotState, emptyLine, formatNumber, formatTime, goalReachedLine, ratio, remainingLine } from './copy';
+import { dayLetter, dayName, dotState, formatNumber, formatTime, ratio, remainingLine, SOURCE_LABEL } from './copy';
 
 describe('home copy', () => {
   it('names days from the stored local day', () => {
     expect(dayName('2026-03-10')).toBe('Tuesday');
     expect(dayLetter('2026-03-15')).toBe('S');
-  });
-
-  it('goal line mentions the day and is stable', () => {
-    expect(goalReachedLine('2026-03-10')).toBe('Fully loaded Tuesday!');
-    for (let i = 9; i < 16; i += 1) {
-      const day = `2026-03-${String(i).padStart(2, '0')}`;
-      expect(goalReachedLine(day)).toContain(dayName(day));
-    }
-  });
-
-  it('always has an empty-state line', () => {
-    for (let i = 1; i <= 31; i += 1) expect(emptyLine(`2026-01-${String(i).padStart(2, '0')}`).length).toBeGreaterThan(5);
   });
 
   it('formats numbers', () => {
@@ -35,7 +23,7 @@ describe('home copy', () => {
 
   it('remainingLine covers under, exact and over', () => {
     expect(remainingLine(86, 150)).toBe('64 g to go');
-    expect(remainingLine(150, 150)).toMatch(/Goal met/);
+    expect(remainingLine(150, 150)).toBe('Goal met');
     expect(remainingLine(162, 150)).toBe('Goal met, 12 g extra');
   });
 
@@ -52,5 +40,13 @@ describe('home copy', () => {
     expect(dotState('2026-03-09', '2026-03-10', 40, 150)).toBe('partial');
     expect(dotState('2026-03-09', '2026-03-10', 0, 150)).toBe('empty');
     expect(dotState('2026-03-09', '2026-03-10', 40, null)).toBe('partial');
+  });
+
+  it('keeps its words short and plain', () => {
+    const lines = [remainingLine(10, 150), remainingLine(150, 150), remainingLine(200, 150), ...Object.values(SOURCE_LABEL)];
+    for (const line of lines) {
+      expect(line).not.toMatch(/!/);
+      expect(line.split(' ').length).toBeLessThanOrEqual(5);
+    }
   });
 });

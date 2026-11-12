@@ -20,11 +20,12 @@ export function CloseButton({ onPress, dark }: { onPress: () => void; dark?: boo
   );
 }
 
-export function Pill({ text, tone = 'soft', style }: { text: string; tone?: 'soft' | 'dark' | 'warning'; style?: StyleProp<ViewStyle> }) {
+/** A one or two word tag. `accessibilityLabel` can say more than the visible text. */
+export function Pill({ text, tone = 'soft', style, accessibilityLabel, testID }: { text: string; tone?: 'soft' | 'dark' | 'warning'; style?: StyleProp<ViewStyle>; accessibilityLabel?: string; testID?: string }) {
   const bg = tone === 'dark' ? 'rgba(0,0,0,0.55)' : tone === 'warning' ? colors.warning : colors.primarySoft;
   const fg = tone === 'dark' ? colors.textOnPrimary : tone === 'warning' ? colors.text : colors.primaryDark;
   return (
-    <View style={[styles.pill, { backgroundColor: bg }, style]}>
+    <View accessible accessibilityLabel={accessibilityLabel ?? text} testID={testID} style={[styles.pill, { backgroundColor: bg }, style]}>
       <AppText variant="small" color={fg} style={{ fontFamily: fonts.bold }}>{text}</AppText>
     </View>
   );

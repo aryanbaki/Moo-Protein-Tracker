@@ -12,7 +12,7 @@ export interface MacroTileProps {
   color: string;
 }
 
-/** Small "eaten / goal" tile with a mini progress bar. */
+/** Small tile: label, eaten, goal, and a mini progress bar. */
 export function MacroTile({ label, value, goal, unit, color }: MacroTileProps) {
   const u = unit ? ` ${unit}` : '';
   const a11y = goal ? `${label}: ${formatNumber(value)}${u} of ${formatNumber(goal)}${u}` : `${label}: ${formatNumber(value)}${u}, no goal set`;
@@ -27,10 +27,9 @@ export function MacroTile({ label, value, goal, unit, color }: MacroTileProps) {
         </View>
         <AppText variant="label" style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
           {formatNumber(value)}
-          {unit ? <AppText variant="small"> {unit}</AppText> : null}
         </AppText>
         <AppText variant="small" numberOfLines={1}>
-          {goal ? `of ${formatNumber(goal)}${u}` : 'no goal yet'}
+          {goal ? `/ ${formatNumber(goal)}${u}` : ' '}
         </AppText>
         <ProgressBar value={ratio(value, goal)} color={color} height={6} />
       </View>

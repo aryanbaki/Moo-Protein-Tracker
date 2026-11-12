@@ -64,7 +64,7 @@ export function validateEntryForm(v: EntryFormValues, mode: EntryFormMode): Entr
   if (carbs.error) errors.carbs = carbs.error;
   if (fat.error) errors.fat = fat.error;
   const name = v.name.replace(/\s+/g, ' ').trim();
-  if (mode === 'manual' && !name) errors.name = 'Give it a name. "Mystery meat" works.';
+  if (mode === 'manual' && !name) errors.name = 'Add a name';
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return { ok: true, entry: { name, proteinG: protein.value, calories: calories.value, carbsG: carbs.value, fatG: fat.value } };
 }

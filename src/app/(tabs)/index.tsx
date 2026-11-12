@@ -1,15 +1,17 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText, Button, Card } from '../../components';
+import { AppText, Button } from '../../components';
 import { presentPaywall, useBilling } from '../../features/billing';
 import { formatDose, isTakenOn } from '../../features/creatine';
 import { AddSheet, type AddAction } from '../../features/home/AddSheet';
-import { dayName, emptyLine, formatNumber, goalReachedLine, ratio, remainingLine } from '../../features/home/copy';
+import { useAddSheet } from '../../features/home/addSheetStore';
+import { dayName, formatNumber, ratio, remainingLine } from '../../features/home/copy';
 import { EntryRow } from '../../features/home/EntryRow';
 import { successHaptic, tapHaptic, thumpHaptic } from '../../features/home/haptics';
+import { Icon } from '../../features/home/icons';
 import { MacroTile } from '../../features/home/MacroTile';
 import { Segmented } from '../../features/home/Segmented';
 import { UndoToast } from '../../features/home/UndoToast';
@@ -19,7 +21,7 @@ import { currentStreak, totalsForDays, useLog } from '../../features/log';
 import { weekDays } from '../../lib/date';
 import { Confetti, Cow, type CowPose } from '../../mascot';
 import { useProfile } from '../../state/profile';
-import { colors, fonts, radius, shadow, spacing } from '../../theme';
+import { colors, fonts, radius, spacing } from '../../theme';
 import type { FoodEntry } from '../../types';
 
 type Range = 'day' | 'week';
@@ -28,6 +30,7 @@ const FILL_MS = 3500;
 const CHEW_MS = 1800;
 const FLEX_MS = 1800;
 const DANCE_MS = 3500;
+const GOAL_FILL_MS = 1200;
 
 export default function Home() {
   const today = useToday();
@@ -39,7 +42,9 @@ export default function Home() {
 
   const [selectedDay, setSelectedDay] = useState(today);
   const [range, setRange] = useState<Range>('day');
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetOpen = useAddSheet((s) => s.open);
+  const setSheetOpen = useAddSheet((s) => s.setOpen);
+  const { width, height } = useWindowDimensions();
   const [showFill, setShowFill] = useState(false);
   const [pose, setPose] = useState<CowPose>('idle');
   const [confettiKey, setConfettiKey] = useState(0);
@@ -73,7 +78,6 @@ export default function Home() {
   const shown = isWeek ? weekSum : dayTotals;
   const shownGoal = proteinGoal ? proteinGoal * mult : null;
   const progress = ratio(shown.proteinG, shownGoal);
-  const dayMet = !!proteinGoal && dayTotals.proteinG >= proteinGoal;
   const goalMet = !!shownGoal && shown.proteinG >= shownGoal;
 
   /* ---- Cow reactions ---- */
@@ -87,10 +91,10 @@ export default function Home() {
     [],
   );
 
-  const flashFill = useCallback(() => {
+  const flashFill = useCallback((ms: number = FILL_MS) => {
     setShowFill(true);
     if (fillTimer.current) clearTimeout(fillTimer.current);
-    fillTimer.current = setTimeout(() => setShowFill(false), FILL_MS);
+    fillTimer.current = setTimeout(() => setShowFill(false), ms);
   }, []);
 
   const strike = useCallback((next: CowPose, ms: number) => {
@@ -107,11 +111,12 @@ export default function Home() {
     seen.current = { day: today, protein: todayProtein.proteinG, count: todayProtein.entryCount };
     if (prev.day !== today) return;
     if (prev.protein === todayProtein.proteinG && prev.count === todayProtein.entryCount) return;
-    flashFill();
     const crossed = !!proteinGoal && prev.protein < proteinGoal && todayProtein.proteinG >= proteinGoal;
+    // On reaching the goal the fill is brief, so the dance is what you see.
+    flashFill(crossed ? GOAL_FILL_MS : FILL_MS);
     if (crossed) {
       setConfettiKey((k) => k + 1);
-      strike('dance', DANCE_MS);
+      strike('dance', GOAL_FILL_MS + DANCE_MS);
       successHaptic();
     } else if (todayProtein.proteinG > prev.protein || todayProtein.entryCount > prev.count) {
       strike('chew', CHEW_MS);
@@ -181,13 +186,14 @@ export default function Home() {
   const onEdit = useCallback((entry: FoodEntry) => router.push({ pathname: '/entry', params: { id: entry.id } }), []);
 
   /* ---- Words ---- */
+  // Spoken only. On screen there is just the number and the goal.
   const scopeLabel = isWeek ? 'protein this week' : isToday ? 'protein today' : `protein on ${dayName(selectedDay)}`;
-  const headline = !isWeek && dayMet ? goalReachedLine(selectedDay) : isWeek && goalMet ? 'A whole week, fully loaded!' : null;
   const percent = Math.round(progress * 100);
   const cowLabel = shownGoal
-    ? `Moo the cow, ${percent} percent full: ${formatNumber(shown.proteinG)} of ${formatNumber(shownGoal)} grams of ${scopeLabel}. Tap to see the fill.`
+    ? `Moo the cow, ${percent} percent full: ${formatNumber(shown.proteinG)} of ${formatNumber(shownGoal)} grams of ${scopeLabel}.${dayEntries.length === 0 && !isWeek ? ' Nothing logged yet.' : ''}`
     : `Moo the cow. ${formatNumber(shown.proteinG)} grams of ${scopeLabel}. No goal set yet.`;
   const listTitle = isToday ? 'Today' : dayName(selectedDay);
+  const cowSize = Math.round(Math.max(220, Math.min(300, width - 96, height * 0.34)));
 
   return (
     <SafeAreaView edges={['top']} style={styles.screen}>
@@ -200,7 +206,7 @@ export default function Home() {
             accessibilityLabel={streak === 1 ? '1 day streak' : `${streak} day streak`}
             testID="streak"
           >
-            <AppText style={{ fontSize: 16, opacity: streak > 0 ? 1 : 0.45 }}>🔥</AppText>
+            <Icon name="flame" size={18} color={streak > 0 ? colors.calories : colors.textSecondary} />
             <AppText variant="label" style={{ fontFamily: fonts.black }} color={streak > 0 ? colors.text : colors.textSecondary}>
               {streak}
             </AppText>
@@ -208,39 +214,25 @@ export default function Home() {
         </View>
 
         <View style={styles.readout} accessible accessibilityRole="text" accessibilityLabel={shownGoal ? `${formatNumber(shown.proteinG)} grams of ${formatNumber(shownGoal)} grams, ${scopeLabel}. ${remainingLine(shown.proteinG, shownGoal)}.` : `${formatNumber(shown.proteinG)} grams, ${scopeLabel}.`}>
-          {headline ? (
-            <AppText variant="heading" center color={colors.primary} style={styles.headline} testID="goal-headline">
-              {headline}
-            </AppText>
-          ) : null}
           <AppText center testID="readout">
-            <AppText variant="display" style={styles.big}>
+            <AppText variant="display" color={goalMet ? colors.good : colors.text} style={styles.big}>
               {formatNumber(shown.proteinG)}
             </AppText>
             <AppText variant="heading" color={colors.textSecondary} style={styles.of}>
-              {shownGoal ? ` g of ${formatNumber(shownGoal)} g` : ' g'}
+              {shownGoal ? ` / ${formatNumber(shownGoal)} g` : ' g'}
             </AppText>
           </AppText>
-          <AppText variant="caption" center>
-            {scopeLabel}
-            {shownGoal ? ` · ${remainingLine(shown.proteinG, shownGoal)}` : ''}
+          <AppText variant="small" center style={styles.unitLabel}>
+            protein
           </AppText>
         </View>
 
         <View style={styles.stage}>
           <Confetti fireKey={confettiKey} />
-          <Pressable onPress={onCowPress} accessibilityRole="button" accessibilityLabel={cowLabel} testID="cow">
-            <Cow size={230} pose={goalMet && pose === 'idle' && showFill ? 'dance' : pose} progress={progress} showFill={showFill} accessibilityLabel={cowLabel} />
+          <Pressable onPress={onCowPress} accessibilityRole="button" accessibilityLabel={cowLabel} accessibilityHint="Shows how full the cow is" testID="cow">
+            <Cow size={cowSize} pose={goalMet && pose === 'idle' && showFill ? 'dance' : pose} progress={progress} showFill={showFill} accessibilityLabel={cowLabel} />
           </Pressable>
         </View>
-
-        {!isToday && !isWeek ? (
-          <Pressable onPress={() => onSelectDay(today)} accessibilityRole="button" style={styles.backToday} testID="back-to-today">
-            <AppText variant="label" color={colors.primaryDark}>
-              ← Back to today
-            </AppText>
-          </Pressable>
-        ) : null}
 
         <Segmented<Range>
           accessibilityLabel="Show protein for"
@@ -252,15 +244,7 @@ export default function Home() {
           ]}
         />
 
-        {!proteinGoal ? (
-          <Card style={styles.noGoal}>
-            <AppText variant="label" style={{ fontSize: 18 }}>
-              Moo needs a target
-            </AppText>
-            <AppText variant="caption">Set a daily protein goal so the cow knows when she is full. You can still log food in the meantime.</AppText>
-            <Button title="Set a goal" onPress={() => router.push('/settings')} testID="set-goal" />
-          </Card>
-        ) : null}
+        {!proteinGoal ? <Button title="Set goal" variant="secondary" onPress={() => router.push('/settings')} testID="set-goal" /> : null}
 
         <View style={styles.tiles}>
           <MacroTile label="Calories" unit="" value={shown.calories} goal={goals && goals.calories > 0 ? goals.calories * mult : null} color={colors.calories} />
@@ -278,95 +262,50 @@ export default function Home() {
             style={({ pressed }) => [styles.creatine, takenToday ? styles.creatineDone : null, pressed ? { opacity: 0.85 } : null]}
             testID="creatine-chip"
           >
-            <View style={[styles.checkbox, takenToday ? styles.checkboxOn : null]}>
-              {takenToday ? (
-                <AppText variant="label" color={colors.textOnPrimary} style={{ lineHeight: 20 }}>
-                  ✓
-                </AppText>
-              ) : null}
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText variant="label">Creatine {formatDose(creatine.doseG)}</AppText>
-              <AppText variant="small">{takenToday ? 'Done for today. Flex approved.' : 'Tap when you have taken it'}</AppText>
-            </View>
-            <AppText style={{ fontSize: 22 }}>{takenToday ? '💪' : '🥄'}</AppText>
+            <View style={[styles.checkbox, takenToday ? styles.checkboxOn : null]}>{takenToday ? <Icon name="check" size={18} color={colors.textOnPrimary} strokeWidth={3} /> : null}</View>
+            <AppText variant="label" style={{ flex: 1 }}>
+              Creatine {formatDose(creatine.doseG)}
+            </AppText>
           </Pressable>
         ) : null}
 
-        <View style={styles.listHeader}>
-          <AppText variant="heading" accessibilityRole="header" style={{ fontSize: 22 }}>
-            {listTitle}
-          </AppText>
-          {dayEntries.length > 0 ? (
-            <AppText variant="caption">
-              {dayEntries.length} {dayEntries.length === 1 ? 'entry' : 'entries'} · swipe left to delete
+        {dayEntries.length > 0 ? (
+          <>
+            <AppText variant="heading" accessibilityRole="header" style={styles.listTitle}>
+              {listTitle}
             </AppText>
-          ) : null}
-        </View>
-
-        {dayEntries.length === 0 ? (
-          <Card style={styles.empty}>
-            <AppText style={{ fontSize: 34 }}>🌾</AppText>
-            <AppText variant="label" center style={{ fontSize: 18 }}>
-              “{emptyLine(selectedDay)}”
-            </AppText>
-            <AppText variant="caption" center>
-              {isToday ? 'Nothing logged yet today.' : `Nothing logged on ${dayName(selectedDay)}.`}
-            </AppText>
-            <Button title={isToday ? 'Log my first bite' : 'Add something'} onPress={() => setSheetOpen(true)} style={{ alignSelf: 'stretch' }} testID="empty-add" />
-          </Card>
-        ) : (
-          <View style={styles.list}>
-            {dayEntries.map((e) => (
-              <EntryRow key={e.id} entry={e} onPress={onEdit} onDelete={onDelete} />
-            ))}
-          </View>
-        )}
+            <View style={styles.list}>
+              {dayEntries.map((e) => (
+                <EntryRow key={e.id} entry={e} onPress={onEdit} onDelete={onDelete} />
+              ))}
+            </View>
+          </>
+        ) : null}
       </ScrollView>
 
-      <UndoToast message={undo ? `Deleted ${undo.name}` : null} onUndo={onUndo} onDismiss={dismissUndo} bottom={spacing.md + 6} />
-
-      <Pressable
-        onPress={() => {
-          tapHaptic();
-          setSheetOpen(true);
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Add food"
-        style={({ pressed }) => [styles.fab, pressed ? { transform: [{ scale: 0.94 }] } : null]}
-        testID="fab"
-      >
-        <AppText style={styles.fabPlus}>+</AppText>
-      </Pressable>
+      <UndoToast message={undo ? 'Deleted' : null} accessibilityLabel={undo ? `Deleted ${undo.name}` : undefined} onUndo={onUndo} onDismiss={dismissUndo} bottom={spacing.md} />
 
       <AddSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} onPick={onPick} dayLabel={isToday ? null : dayName(selectedDay)} />
     </SafeAreaView>
   );
 }
 
-const FAB = 64;
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: spacing.md + 4, paddingTop: spacing.sm, paddingBottom: FAB + spacing.xl, gap: spacing.md, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  content: { paddingHorizontal: spacing.md + 4, paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.md, width: '100%', maxWidth: 560, alignSelf: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4 },
   streak: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: spacing.sm + 4, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
   streakLit: { backgroundColor: '#FFE7C2' },
-  readout: { alignItems: 'center', gap: 0 },
-  headline: { fontSize: 24, marginBottom: 2 },
-  big: { fontSize: 60, lineHeight: 66 },
-  of: { fontSize: 22 },
-  stage: { alignItems: 'center', justifyContent: 'center', minHeight: 190 },
-  backToday: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md },
-  noGoal: { gap: spacing.sm, borderWidth: 2, borderColor: colors.primarySoft },
+  readout: { alignItems: 'center', gap: 0, marginTop: spacing.sm },
+  big: { fontSize: 68, lineHeight: 72 },
+  of: { fontSize: 24 },
+  unitLabel: { letterSpacing: 1.5, textTransform: 'uppercase' },
+  stage: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm },
   tiles: { flexDirection: 'row', gap: spacing.sm + 2 },
-  creatine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 64, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.creatine },
+  creatine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, minHeight: 56, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.creatine },
   creatineDone: { backgroundColor: '#EFE9FB' },
   checkbox: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5, borderColor: colors.creatine, alignItems: 'center', justifyContent: 'center' },
   checkboxOn: { backgroundColor: colors.creatine },
-  listHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: spacing.xs },
+  listTitle: { fontSize: 22, marginTop: spacing.xs },
   list: { gap: spacing.sm + 2 },
-  empty: { alignItems: 'center', gap: spacing.sm, padding: spacing.lg },
-  fab: { position: 'absolute', right: spacing.md + 4, bottom: spacing.md, width: FAB, height: FAB, borderRadius: FAB / 2, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center', ...shadow.card, shadowOpacity: 0.25, elevation: 6 },
-  fabPlus: { color: colors.textOnPrimary, fontFamily: fonts.bold, fontSize: 36, lineHeight: 40 },
 });

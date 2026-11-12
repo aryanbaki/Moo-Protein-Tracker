@@ -19,6 +19,7 @@ import {
   type KeypadKey,
 } from '../../features/log/form';
 import { localDay } from '../../lib/date';
+import { Cow } from '../../mascot';
 import { colors, fonts, radius, spacing } from '../../theme';
 import type { FoodEntry } from '../../types';
 
@@ -49,27 +50,31 @@ function Missing() {
     <SafeAreaView style={styles.screen}>
       <Header title="Entry" />
       <View style={styles.missing}>
-        <AppText style={{ fontSize: 44 }}>🐄</AppText>
+        <Cow size={180} pose="shrug" />
         <AppText variant="heading" center>
-          That one wandered off
+          Not found
         </AppText>
-        <AppText variant="caption" center>
-          This entry is not in your log any more.
-        </AppText>
-        <Button title="Back to the barn" onPress={close} style={{ alignSelf: 'stretch' }} />
+        <Button title="Back" onPress={close} style={{ alignSelf: 'stretch' }} />
       </View>
     </SafeAreaView>
   );
 }
 
-function Header({ title, subtitle }: { title: string; subtitle?: string }) {
+/** `tag` is a single word shown next to the title, e.g. the day when it is not today. */
+function Header({ title, tag }: { title: string; tag?: string }) {
   return (
     <View style={styles.header}>
-      <View style={{ flex: 1 }}>
+      <View style={styles.titleRow}>
         <AppText variant="heading" accessibilityRole="header">
           {title}
         </AppText>
-        {subtitle ? <AppText variant="caption">{subtitle}</AppText> : null}
+        {tag ? (
+          <View style={styles.tag}>
+            <AppText variant="small" color={colors.primaryDark}>
+              {tag}
+            </AppText>
+          </View>
+        ) : null}
       </View>
       <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} style={styles.close} testID="entry-close">
         <AppText variant="label" color={colors.textSecondary}>
@@ -129,7 +134,7 @@ function EntryForm({ kind, existing, day }: EntryFormProps) {
       close();
     } catch (e) {
       setBusy(false);
-      setSaveError(e instanceof Error && e.name === 'LogValidationError' ? e.message : 'Could not save that. Please try again.');
+      setSaveError(e instanceof Error && e.name === 'LogValidationError' ? e.message : 'Not saved');
     }
   };
 
@@ -141,17 +146,18 @@ function EntryForm({ kind, existing, day }: EntryFormProps) {
       close();
     } catch {
       setBusy(false);
-      setSaveError('Could not delete that. Please try again.');
+      setSaveError('Not deleted');
     }
   };
 
-  const title = kind === 'edit' ? 'Edit entry' : isQuick ? 'Quick add' : 'Type it in';
-  const subtitle = existing ? `Logged on ${dayName(existing.day)}` : day ? `Adding to ${dayName(day)}` : isQuick ? 'Just the protein. Done in two taps.' : 'Protein is the one that matters. The rest is optional.';
+  const title = kind === 'edit' ? 'Edit' : isQuick ? 'Quick add' : 'Add food';
+  const entryDay = existing?.day ?? day;
+  const tag = entryDay && entryDay !== localDay() ? dayName(entryDay) : undefined;
 
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Header title={title} subtitle={subtitle} />
+        <Header title={title} tag={tag} />
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {isQuick ? (
             <QuickPad
@@ -164,15 +170,15 @@ function EntryForm({ kind, existing, day }: EntryFormProps) {
             />
           ) : (
             <>
-              <Field label="What was it?" error={errors.name} value={values.name} onChangeText={(t) => set('name', t)} placeholder="Chicken burrito" maxLength={MAX_NAME_LENGTH} autoCapitalize="sentences" autoFocus={kind === 'manual'} returnKeyType="next" onSubmitEditing={() => proteinRef.current?.focus()} testID="field-name" />
+              <Field label="Name" error={errors.name} value={values.name} onChangeText={(t) => set('name', t)} placeholder="Chicken burrito" maxLength={MAX_NAME_LENGTH} autoCapitalize="sentences" autoFocus={kind === 'manual'} returnKeyType="next" onSubmitEditing={() => proteinRef.current?.focus()} testID="field-name" />
               <Field ref={proteinRef} label="Protein" unit="g" big error={errors.protein} value={values.protein} onChangeText={(t) => set('protein', t)} placeholder="0" keyboardType="decimal-pad" inputMode="decimal" returnKeyType="next" onSubmitEditing={() => caloriesRef.current?.focus()} testID="field-protein" />
             </>
           )}
 
           <View style={styles.row}>
-            <Field ref={caloriesRef} style={{ flex: 1 }} label={isQuick ? 'Calories (optional)' : 'Calories'} unit="kcal" error={errors.calories} value={values.calories} onChangeText={(t) => set('calories', t)} placeholder="0" keyboardType="decimal-pad" inputMode="decimal" testID="field-calories" />
+            <Field ref={caloriesRef} style={{ flex: 1 }} label="Calories" unit="kcal" error={errors.calories} value={values.calories} onChangeText={(t) => set('calories', t)} placeholder={isQuick ? 'optional' : '0'} keyboardType="decimal-pad" inputMode="decimal" testID="field-calories" />
             {isQuick ? (
-              <Field style={{ flex: 1.3 }} label="Name (optional)" error={errors.name} value={values.name} onChangeText={(t) => set('name', t)} placeholder="Quick add" maxLength={MAX_NAME_LENGTH} testID="field-name" />
+              <Field style={{ flex: 1.3 }} label="Name" error={errors.name} value={values.name} onChangeText={(t) => set('name', t)} placeholder="optional" maxLength={MAX_NAME_LENGTH} testID="field-name" />
             ) : null}
           </View>
           {!isQuick ? (
@@ -190,22 +196,17 @@ function EntryForm({ kind, existing, day }: EntryFormProps) {
 
           {existing ? (
             confirmDelete ? (
-              <View style={styles.confirm} testID="confirm-delete">
-                <AppText variant="label" center>
-                  Delete “{existing.name}”?
-                </AppText>
-                <View style={styles.row}>
-                  <Button title="Keep it" variant="secondary" onPress={() => setConfirmDelete(false)} style={{ flex: 1 }} testID="delete-cancel" />
-                  <Button title="Delete" variant="danger" onPress={remove} disabled={busy} style={{ flex: 1 }} testID="delete-confirm" />
-                </View>
+              <View style={styles.row} testID="confirm-delete">
+                <Button title="Cancel" variant="secondary" onPress={() => setConfirmDelete(false)} style={{ flex: 1 }} testID="delete-cancel" />
+                <Button title="Delete" variant="danger" onPress={remove} disabled={busy} accessibilityLabel={`Delete ${existing.name}`} style={{ flex: 1 }} testID="delete-confirm" />
               </View>
             ) : (
-              <Button title="Delete entry" variant="ghost" onPress={() => setConfirmDelete(true)} testID="delete-entry" />
+              <Button title="Delete" variant="ghost" onPress={() => setConfirmDelete(true)} testID="delete-entry" />
             )
           ) : null}
         </ScrollView>
         <View style={styles.footer}>
-          <Button title={existing ? 'Save changes' : isQuick ? 'Add protein' : 'Save'} onPress={save} disabled={busy} testID="entry-save" />
+          <Button title={existing ? 'Save' : 'Add'} onPress={save} disabled={busy} testID="entry-save" />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -230,7 +231,7 @@ function QuickPad({ value, error, onChange }: { value: string; error?: string; o
         </AppText>
       </View>
       <AppText variant="caption" center color={error ? colors.bad : colors.textSecondary} accessibilityLiveRegion="polite" testID="quick-hint">
-        {error ?? 'grams of protein'}
+        {error ?? 'protein'}
       </AppText>
       <View style={styles.chips}>
         {CHIPS.map((g) => (
@@ -332,7 +333,8 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md },
   row: { flexDirection: 'row', gap: spacing.sm + 4, alignItems: 'flex-start' },
   missing: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.lg },
-  confirm: { gap: spacing.sm + 4, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.bad },
+  titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+  tag: { paddingHorizontal: spacing.sm + 4, minHeight: 26, borderRadius: radius.pill, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
 
   pad: { gap: spacing.sm + 2 },
   display: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' },
