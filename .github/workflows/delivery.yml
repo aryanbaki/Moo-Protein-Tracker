@@ -1,0 +1,97 @@
+name: Manual iOS delivery
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Explicit delivery action (never runs on push)
+        type: choice
+        required: true
+        options:
+          - preview-build
+          - production-build
+          - testflight
+          - preview-update
+          - production-update
+      confirmation:
+        description: Type the selected action exactly to confirm
+        type: string
+        required: true
+      build_id:
+        description: Finished production EAS build UUID (TestFlight only)
+        type: string
+        required: false
+      message:
+        description: Release description (updates only)
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: moo-delivery-${{ startsWith(inputs.action, 'preview-') && 'preview' || 'production' }}
+  cancel-in-progress: false
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ startsWith(inputs.action, 'preview-') && 'preview' || 'production' }}
+    env:
+      CI: '1'
+      DELIVERY_ACTION: ${{ inputs.action }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      BUILD_ID: ${{ inputs.build_id }}
+      RELEASE_MESSAGE: ${{ inputs.message }}
+      EXPO_VERIFIED: ${{ vars.MOO_EXPO_VERIFIED }}
+      SIGNING_READY: ${{ vars.MOO_APPLE_SIGNING_READY }}
+      UPDATES_READY: ${{ vars.MOO_UPDATES_READY }}
+      SUBMIT_READY: ${{ vars.MOO_SUBMIT_READY }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Fail closed while account setup is incomplete
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: node scripts/delivery-guard.mjs
+      - run: npm ci
+      - run: npm run test:setup
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run doctor
+      - run: npm run export:ios
+      - name: Verify authenticated project metadata
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          node --use-env-proxy scripts/expo-project.mjs --verify
+      - name: Execute only the selected action
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$DELIVERY_ACTION" in
+            preview-build)
+              npx --yes eas-cli@27.7.2 build --platform ios --profile preview --non-interactive --no-wait --freeze-credentials
+              ;;
+            production-build)
+              npx --yes eas-cli@27.7.2 build --platform ios --profile production --non-interactive --no-wait --freeze-credentials
+              ;;
+            testflight)
+              npx --yes eas-cli@27.7.2 build:view "$BUILD_ID" --json > "$RUNNER_TEMP/moo-build.json"
+              node scripts/delivery-guard.mjs build "$RUNNER_TEMP/moo-build.json"
+              npx --yes eas-cli@27.7.2 submit --platform ios --profile production --id "$BUILD_ID" --non-interactive --no-wait --no-auto-testflight-setup
+              ;;
+            preview-update)
+              test -n "$RELEASE_MESSAGE"
+              npx --yes eas-cli@27.7.2 update --platform ios --channel preview --environment preview --message "$RELEASE_MESSAGE" --non-interactive
+              ;;
+            production-update)
+              test -n "$RELEASE_MESSAGE"
+              npx --yes eas-cli@27.7.2 update --platform ios --channel production --environment production --message "$RELEASE_MESSAGE" --non-interactive
+              ;;
+            *) exit 1 ;;
+          esac

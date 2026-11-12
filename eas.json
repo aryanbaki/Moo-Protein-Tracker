@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": "27.7.2",
+    "appVersionSource": "remote",
+    "requireCommit": true
+  },
+  "build": {
+    "base": {
+      "node": "24.22.1"
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development"
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "environment": "preview",
+      "channel": "preview"
+    },
+    "production": {
+      "extends": "base",
+      "distribution": "store",
+      "environment": "production",
+      "channel": "production",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {}
+    }
+  }
+}
