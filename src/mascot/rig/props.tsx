@@ -239,7 +239,7 @@ export function PropView({ cue, skin, frame, clock }: PropViewProps) {
   const anchor = anchorPoint(skin, cue.anchor ?? spec.anchor);
   const { k, unit } = frame;
   const sc = cue.scale ?? 1;
-  const left = (anchor[0] - frame.vb.x) * k + (cue.dx ?? 0) * unit;
+  const left = (anchor[0] - frame.vb.x) * k + (cue.dx ?? 0) * unit * (skin.facing === 'left' ? -1 : 1);
   const top = (anchor[1] - frame.vb.y) * k + (cue.dy ?? 0) * unit;
   const headW = skin.anchors.headWidth * k;
   const span = Math.max(0.0001, to - from);
@@ -293,9 +293,16 @@ export function PropView({ cue, skin, frame, clock }: PropViewProps) {
     body = <Sunglasses size={w} />;
   } else if (kind === 'grass') {
     const w = unit * 0.15 * sc;
-    box = { left: left + w * 0.1, top: top - w * 0.2, width: w, height: w * 0.6 };
-    origin = '0% 40%';
-    body = <GrassTuft size={w} />;
+    const flipped = skin.facing === 'left';
+    box = { left: flipped ? left - w * 1.1 : left + w * 0.1, top: top - w * 0.2, width: w, height: w * 0.6 };
+    origin = flipped ? '100% 40%' : '0% 40%';
+    body = flipped ? (
+      <View style={{ transform: [{ scaleX: -1 }] }}>
+        <GrassTuft size={w} />
+      </View>
+    ) : (
+      <GrassTuft size={w} />
+    );
   } else if (kind === 'shock') {
     const w = headW * 1.5 * sc;
     const h = w * 0.34;

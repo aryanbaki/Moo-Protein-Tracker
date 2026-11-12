@@ -33,7 +33,7 @@ export function Stage({ skin, animation, still, mode = 'loop', replay = 0, size 
   const uid = useUid('lab');
   const [run, onDone] = useReplay(mode === 'loop');
   return (
-    <View style={[styles.stage, { height: size * 1.05, paddingTop: size * 0.2 }]} testID="stage">
+    <View style={[styles.stage, { height: size * 1.38, paddingTop: size * 0.24 }]} testID="stage">
       <CowRig skin={skin} animation={animation} size={size} reduced={still} loop={mode === 'once' ? false : undefined} playKey={`${run}-${replay}`} onDone={onDone} uid={uid} />
     </View>
   );

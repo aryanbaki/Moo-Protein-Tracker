@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { StyleSheet } from 'react-native';
+import { Image, type ImageSourcePropType, StyleSheet } from 'react-native';
 import Svg, { ClipPath, Defs, Path } from 'react-native-svg';
 
 import type { Pt, Shape, ViewBox } from './types';
@@ -21,6 +21,27 @@ export interface Frame {
 /** One static SVG layer filling the frame. Never re-renders unless its shapes change. */
 export const Layer = memo(function Layer({ shapes, frame }: { shapes: readonly Shape[]; frame: Frame }) {
   const { vb, w, h, uid, clips } = frame;
+  const pictures = shapes.filter((s) => s.image);
+  if (pictures.length) {
+    const paths = shapes.filter((s) => !s.image);
+    return (
+      <>
+        {pictures.map((s, i) => {
+          const [x, y, bw, bh] = (s.image as NonNullable<Shape['image']>).box;
+          return (
+            <Image
+              key={i}
+              source={(s.image as NonNullable<Shape['image']>).source as ImageSourcePropType}
+              resizeMode="stretch"
+              fadeDuration={0}
+              style={{ position: 'absolute', left: (x - vb.x) * frame.k, top: (y - vb.y) * frame.k, width: bw * frame.k, height: bh * frame.k, opacity: s.opacity }}
+            />
+          );
+        })}
+        {paths.length ? <Layer shapes={paths} frame={frame} /> : null}
+      </>
+    );
+  }
   const used = clips ? [...new Set(shapes.map((s) => s.clip).filter((c): c is string => !!c && c in clips))] : [];
   return (
     <Svg width={w} height={h} viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} style={styles.fill}>

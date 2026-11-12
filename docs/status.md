@@ -1,9 +1,48 @@
 # Current project status
 
-Last verified: November 12, 2026, 15:40 UTC. Branch: claude/modest-ramanujan-n495q3.
+Last verified: November 12, 2026, 20:10 UTC. Branch: claude/modest-ramanujan-n495q3.
 PR: https://github.com/aryanbaki/Moo-Protein-Tracker/pull/2
 
-## Round 2 completed in this task
+## Round 4 completed in this task: the chosen cow
+- The owner rejected the five code-drawn cows, reviewed twelve generated
+  directions, and chose a hybrid: soft-3D head on a clay-toy body. That image
+  is `scripts/cow-parts/master.png` (Figma image generator, 1024 x 1024).
+- The cow is cut into parts by `scripts/cow-parts` (see its README) and is now
+  the only skin (`moo`). The five old skins and `scripts/generate-icons.mjs`
+  are removed. The rig gained picture parts, eyelid blinks, a left-facing flag
+  and a ground shadow. All 41 animations play on the new cow.
+- The fill view shows the real cow faded with the liquid inside its outline.
+- App icon and splash are regenerated from the new head.
+- Cow image assets total about 0.85 MB.
+
+## Fresh checks (Node v24.22.1)
+- Passed: npm run typecheck, npm run lint, npm test (31 suites, 393 tests),
+  npm run export:ios, web export.
+- Passed: browser walk at 390x844 with no page or console errors (welcome,
+  first question, home, add sheet, quick add with fill, food search, scan,
+  progress, settings, paywall) and the Cow Lab tour of every animation.
+- Not run: npm run doctor, npm run test:setup, native build, device behaviour.
+  The picture-part rendering has only been seen on web, not on an iPhone.
+
+## Known weak spots
+- Puppet limits: no turning, no change of lighting. Large leg swings show the
+  joint, so leg rotation is damped in the skin.
+- Open-mouth and tongue shapes are simple drawn overlays under the muzzle.
+- Wave, flex, cheer and facepalm lift a front leg (a cow has no arms).
+- Rive is not connected to this workspace; nothing was built in Rive.
+- The image generator's licence terms for commercial use are unchecked.
+- Owner blockers from round 1 are unchanged (Anthropic key, Supabase project,
+  RevenueCat, Apple bundle ID, legal URLs).
+
+## Next concrete task
+Owner reviews the animated cow. Then tune or drop individual animations, and
+decide on merging PR #2 into main and on an iPhone preview build.
+
+The sections below are earlier status entries, newest first.
+
+# Earlier status: round 2
+
+## Round 2 completed
 - Text cut across onboarding, home, entry, scan, paywall, sign-in, progress and
   settings (titles only, no subtitles; speech bubbles only on the splash and the
   goal reality check). Onboarding merged sex + birth year and creatine dose +
@@ -36,8 +75,6 @@ project, RevenueCat, Apple bundle ID, legal URLs).
 Owner picks a skin and animations. Then make it the default, remove the other
 skins, regenerate icon and splash, add arms to the chosen skin, and assign
 animations to app moments.
-
-The sections below are earlier status entries, newest first.
 
 # Earlier status: v1 and food data
 

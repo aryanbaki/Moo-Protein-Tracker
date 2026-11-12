@@ -88,8 +88,18 @@ describe('registered skins', () => {
     for (const entry of s.zOrder) {
       if (typeof entry === 'string') expect(s.parts[entry as keyof typeof s.parts]).toBeDefined();
     }
-    for (const kind of EYE_KINDS) expect(s.eyes[kind].shapes.length + (s.eyes[kind].pupils?.length ?? 0)).toBeGreaterThan(0);
-    for (const kind of MOUTH_KINDS) if (kind !== 'none') expect(s.mouth[kind].length).toBeGreaterThan(0);
+    // Skins cut from artwork carry their open eyes and resting mouth in the head picture.
+    const baked = !!s.ghost;
+    for (const kind of EYE_KINDS) {
+      expect(s.eyes[kind]).toBeDefined();
+      if (!baked) expect(s.eyes[kind].shapes.length + (s.eyes[kind].pupils?.length ?? 0)).toBeGreaterThan(0);
+    }
+    for (const kind of MOUTH_KINDS) {
+      if (kind === 'none') continue;
+      expect(s.mouth[kind]).toBeDefined();
+      if (!baked) expect(s.mouth[kind].length).toBeGreaterThan(0);
+    }
+    if (baked) expect(s.lids?.length).toBeGreaterThan(0);
     expect(s.silhouette.length).toBeGreaterThan(0);
     expect(s.headSilhouette.length).toBeGreaterThan(0);
     expect(s.fillRange.bottom).toBeGreaterThan(s.fillRange.top);

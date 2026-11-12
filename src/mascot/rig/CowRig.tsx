@@ -8,6 +8,7 @@
  */
 import { Fragment, type ReactNode, useEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -137,6 +138,49 @@ function Variant({ frame, clock, channel, index, fallback, shapes }: { frame: Fr
   );
 }
 
+/** An eyelid: drawn shut, scaled open from its top edge by the idle blink. */
+function Lid({ frame, clock, pivot, shapes }: { frame: Frame; clock: Clock; pivot: Pt; shapes: readonly Shape[] }) {
+  const style = useAnimatedStyle(() => {
+    const b = clock.blink.value * clock.state.value.cur.blink;
+    return { opacity: b > 0.02 ? 1 : 0, transform: [{ scaleY: b }] };
+  });
+  return (
+    <Animated.View style={[fillStyle, { transformOrigin: originOf(frame, pivot) }, style]}>
+      <Layer shapes={shapes} frame={frame} />
+    </Animated.View>
+  );
+}
+
+/** Ground shadow: tightens and fades as the cow lifts off. */
+function Shadow({ frame, clock, at, dir }: { frame: Frame; clock: Clock; at: NonNullable<CowSkin['shadow']>; dir: number }) {
+  const style = useAnimatedStyle(() => {
+    const p = poseOf(clock.state.value, ROOT_NAMES, ONE, clock.t.value, clock.blend.value);
+    const lift = Math.max(0, -p[2]);
+    const s = Math.max(0.35, 1 - lift * 1.6);
+    return { opacity: Math.max(0, 0.34 * p[5] * (1 - lift * 1.4)), transform: [{ translateX: p[1] * frame.unit * dir }, { scaleX: s * Math.abs(p[3]) }, { scaleY: s }] };
+  });
+  const { vb, k } = frame;
+  const sw = at.rx * 2 * k;
+  const sh = at.ry * 2 * k;
+  return (
+    <Animated.View style={[{ position: 'absolute', left: (at.cx - at.rx - vb.x) * k, top: (at.cy - at.ry - vb.y) * k, width: sw, height: sh }, style]}>
+      <Svg width={sw} height={sh} viewBox="0 0 100 100" preserveAspectRatio="none">
+        <Defs>
+          <RadialGradient id={`${frame.uid}-shadow`} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor="#3B2F22" stopOpacity={1} />
+            <Stop offset="0.55" stopColor="#3B2F22" stopOpacity={0.55} />
+            <Stop offset="1" stopColor="#3B2F22" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Ellipse cx={50} cy={50} rx={50} ry={50} fill={`url(#${frame.uid}-shadow)`} />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+const ROOT_NAMES: readonly TrackName[] = ['root'];
+const ONE: readonly number[] = [1];
+
 function drive(names: readonly TrackName[], over: Partial<Drive> = {}): Drive {
   return { names, gains: over.gains ?? names.map(() => 1), sign: 1, follow: 1, idle: 'none', ...over };
 }
@@ -246,9 +290,10 @@ export function CowRig({ skin, animation, size, headOnly = false, loop, onDone, 
     [t, blend],
   );
 
-  const rootStyle = usePartStyle(clock, ROOT, unit);
-  const bodyStyle = usePartStyle(clock, BODY, unit);
-  const headStyle = usePartStyle(clock, HEAD, unit);
+  const flip = skin.facing === 'left';
+  const rootStyle = usePartStyle(clock, flip ? ROOT_FLIP : ROOT, unit);
+  const bodyStyle = usePartStyle(clock, flip ? BODY_FLIP : BODY, unit);
+  const headStyle = usePartStyle(clock, flip ? HEAD_FLIP : HEAD, unit);
 
   // Mount only the expression layers this animation can show.
   const kinds = useMemo(() => {
@@ -283,7 +328,10 @@ export function CowRig({ skin, animation, size, headOnly = false, loop, onDone, 
       }
       case 'eyes':
         return (
-          <RigPart key={name} frame={frame} clock={clock} drive={own(['eyes'], { idle: 'eyes' })} pivot={part.pivot}>
+          <RigPart key={name} frame={frame} clock={clock} drive={own(['eyes'], { idle: skin.lids ? 'none' : 'eyes' })} pivot={part.pivot}>
+            {skin.lids?.map((lid, i) => (
+              <Lid key={`lid${i}`} frame={frame} clock={clock} pivot={lid.pivot} shapes={lid.shapes} />
+            ))}
             {kinds.eyes.map((kind) => (
               <Variant key={kind} frame={frame} clock={clock} channel="eyes" index={EYE_KINDS.indexOf(kind)} fallback={0} shapes={skin.eyes[kind].shapes} />
             ))}
@@ -348,6 +396,7 @@ export function CowRig({ skin, animation, size, headOnly = false, loop, onDone, 
 
   return (
     <View style={{ width: w, height: h }}>
+      {skin.shadow && !headOnly ? <Shadow frame={frame} clock={clock} at={skin.shadow} dir={flip ? -1 : 1} /> : null}
       <Group frame={frame} pivot={skin.rootPivot} style={headOnly ? undefined : rootStyle}>
         {groups.map((g, i) =>
           g.space === 'root' ? (
@@ -374,3 +423,6 @@ const ROOT = drive(['root']);
 const BODY = drive(['body'], { idle: 'body' });
 const HEAD = drive(['head'], { idle: 'head' });
 const PUPILS = drive(['pupils']);
+const ROOT_FLIP = drive(['root'], { sign: -1 });
+const BODY_FLIP = drive(['body'], { idle: 'body', sign: -1 });
+const HEAD_FLIP = drive(['head'], { idle: 'head', sign: -1 });

@@ -75,21 +75,32 @@ put text in fixed-height containers; allow wrapping and system text scaling.
   in text, with the data colour as an accent only.
 
 ## Mascot
-The cow is original artwork drawn in code as SVG (`react-native-svg`) and animated
-with Reanimated. It is exposed from `src/mascot` as `Cow`, `UfoScene`,
-`SpeechBubble`, and `Confetti`. No emoji, stock art, or third-party character
-stands in for it in a shipped build.
+The cow is a 3D-rendered Holstein (soft film-style head on a clay-toy body), chosen
+by the owner in round 4. The artwork is one generated image (`scripts/cow-parts/master.png`)
+cut into parts and animated with Reanimated as a puppet. It is exposed from
+`src/mascot` as `Cow`, `UfoScene`, `SpeechBubble`, and `Confetti`. No emoji, stock
+art, or third-party character stands in for it in a shipped build.
 
-- **Construction**: one SVG with named groups (body, spots, head, ears, eyes,
-  tail, legs, udder), so each part can be moved independently. White body, near
-  black spots, pink udder and nose, dark outline.
+- **Construction**: `scripts/cow-parts/build.py` cuts the master into head, two
+  ears, body, four legs and tail (`assets/cow/`), paints in the areas one part
+  hides behind another, and writes boxes, pivots and the outline to
+  `src/mascot/skins/moo.parts.ts`. The skin is `src/mascot/skins/moo.ts`. Open
+  eyes and the resting mouth are part of the head picture; blinks and other eye
+  states are eyelids drawn over them. The rig still accepts drawn (SVG) skins.
+- **Limits**: the cow moves like a puppet. It cannot turn to show another side.
+  A real 3D model or a Rive file would be a separate step; the cut parts are
+  what either would start from.
+- **Icon and splash**: `scripts/cow-parts/icons.py` builds both from the same
+  artwork (head plus a "MOO!" bubble).
+- **Licence**: the master image came from Figma's image generator. Its terms for
+  commercial use in an app have not been checked yet; do that before release.
 - **Poses** (`CowPose`): idle, wave, chew, flex, shocked, shrug, dance, sweat,
   crown, abducted. Idle includes small life signs (blink, tail swish, ear flick,
   occasional chew). Poses carry meaning in context: wave on welcome, sweat past
   the safe pace, shocked on the reality check, shrug on "no creatine", flex on
   the creatine check-off, crown on the paywall, dance on reaching the goal.
-- **Fill effect**: on tap or after logging, the illustrated cow cross-fades to a
-  see-through outline (`cowGhost`) and a green fill with a wavy surface rises
+- **Fill effect**: on tap or after logging, the cow cross-fades to a
+  faded copy of itself and a green fill with a wavy surface rises
   inside the outline to the current percentage, holds, then fades back. The same
   effect shows the week's total in the weekly view. Fill never exceeds the outline;
   going over the goal is shown in text.

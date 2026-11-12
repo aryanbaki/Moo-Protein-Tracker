@@ -3,7 +3,7 @@
  * hooves to `progress`, clipped to the cow's outline, with a gently rolling surface.
  */
 import { memo, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -19,7 +19,7 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import { colors } from '../theme';
 import type { Frame } from './rig/Layer';
 import type { CowSkin } from './rig/types';
-import classic from './skins/classic';
+import moo from './skins/moo';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -33,7 +33,7 @@ export function clampProgress(p: number | undefined): number {
 }
 
 /** Surface height (viewBox units) for a progress value. */
-export function levelFor(progress: number | undefined, headOnly = false, skin: CowSkin = classic): number {
+export function levelFor(progress: number | undefined, headOnly = false, skin: CowSkin = moo): number {
   const { top, bottom } = headOnly ? skin.headFillRange : skin.fillRange;
   const p = clampProgress(progress);
   if (p <= 0) return bottom + 14;
@@ -116,6 +116,39 @@ export const CowFill = memo(function CowFill({ frame, skin, progress, shown, col
   const outline = headOnly ? skin.headSilhouette : skin.silhouette;
   const face = skin.ghostFace;
   const clipId = `${uid}-sil`;
+
+  // Skins cut from artwork: the real cow, faded, with the liquid rising inside its outline.
+  if (skin.ghost) {
+    const [gx, gy, gw, gh] = skin.ghost.box;
+    const k = frame.k;
+    const picture = (opacity: number) => (
+      <Image
+        source={skin.ghost?.source as ImageSourcePropType}
+        resizeMode="stretch"
+        fadeDuration={0}
+        style={{ position: 'absolute', left: (gx - vb.x) * k, top: (gy - vb.y) * k, width: gw * k, height: gh * k, opacity }}
+      />
+    );
+    return (
+      <View style={[styles.fill, { width: w, height: h, overflow: 'hidden' }]}>
+        {picture(0.3)}
+        <Svg width={w} height={h} viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} style={styles.fill}>
+          <Defs>
+            <ClipPath id={clipId}>
+              {outline.map((d, i) => (
+                <Path key={i} d={d} />
+              ))}
+            </ClipPath>
+          </Defs>
+          <G clipPath={`url(#${clipId})`}>
+            <AnimatedPath animatedProps={backProps} fill={color} opacity={0.4} />
+            <AnimatedPath animatedProps={frontProps} fill={color} opacity={0.92} />
+          </G>
+        </Svg>
+        {picture(0.22)}
+      </View>
+    );
+  }
 
   return (
     <Svg width={w} height={h} viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} style={styles.fill}>

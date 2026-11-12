@@ -10,9 +10,18 @@
 
 /* ------------------------------------------------------------------ drawing */
 
-/** One SVG path. `clip` names an entry of `CowSkin.clips`. */
+/** A cropped picture placed on the canvas (used by skins cut from artwork rather than drawn). */
+export interface ShapeImage {
+  /** What `require('x.png')` returns. Typed loosely to keep this file free of React imports. */
+  source: unknown;
+  /** x, y, width, height in viewBox units. */
+  box: readonly [number, number, number, number];
+}
+
+/** One SVG path, or (with `image`) one picture; then `d` is ignored. `clip` names an entry of `CowSkin.clips`. */
 export interface Shape {
   d: string;
+  image?: ShapeImage;
   fill?: string;
   stroke?: string;
   /** Stroke width in viewBox units (default 5). */
@@ -149,6 +158,21 @@ export interface CowSkin {
   headFillRange: { top: number; bottom: number };
   /** A few dark marks (eyes, nostrils, smile) drawn faintly over the fill view. */
   ghostFace: Shape[];
+
+  /**
+   * Which way the cow looks. Animations are written for a cow facing right; `left` flips
+   * the whole-cow, body and head tracks (limbs use their own `mirror` flag).
+   */
+  facing?: 'left' | 'right';
+  /**
+   * Eyelids for skins whose open eyes are part of the head picture. Each lid is drawn
+   * shut and scaled from its top edge: the idle blink and nothing else drives them.
+   */
+  lids?: { pivot: Pt; shapes: Shape[] }[];
+  /** Picture of the whole cow, shown faintly in the fill view instead of a drawn outline. */
+  ghost?: ShapeImage;
+  /** Soft ground shadow (viewBox units). It shrinks as the cow leaves the ground. */
+  shadow?: { cx: number; cy: number; rx: number; ry: number };
 
   /** Rotation multiplier when an arm track falls back to a front leg (default 0.55). */
   armFallbackGain?: number;
