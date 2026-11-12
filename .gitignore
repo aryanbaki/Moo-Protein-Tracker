@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+.env
+.env.*
+!.env.example
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.tsbuildinfo
+expo-env.d.ts
+.DS_Store
+npm-debug.*
+
+# Native signing and local EAS credentials
+credentials.json
+*.pem
+*.cer
+*.pfx
+*.provisionprofile

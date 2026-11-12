@@ -1,0 +1,5 @@
+{"totalHits":3,"foods":[
+{"fdcId":2646170,"description":"Chicken, breast, boneless, skinless, raw","dataType":"Foundation","foodNutrients":[{"nutrientId":1003,"nutrientNumber":"203","unitName":"G","value":22.5},{"nutrientId":1004,"nutrientNumber":"204","unitName":"G","value":1.93},{"nutrientId":2047,"nutrientNumber":"957","unitName":"KCAL","value":106},{"nutrientId":2048,"nutrientNumber":"958","unitName":"KCAL","value":104}]},
+{"fdcId":171477,"description":"Chicken, broilers or fryers, breast, meat only, cooked, roasted","dataType":"SR Legacy","foodNutrients":[{"nutrientId":1003,"nutrientNumber":"203","unitName":"G","value":31.0},{"nutrientId":1004,"nutrientNumber":"204","unitName":"G","value":3.57},{"nutrientId":1005,"nutrientNumber":"205","unitName":"G","value":0},{"nutrientId":1008,"nutrientNumber":"208","unitName":"KCAL","value":165}]},
+{"fdcId":999,"description":"No nutrients here","dataType":"SR Legacy","foodNutrients":[]}
+]}
